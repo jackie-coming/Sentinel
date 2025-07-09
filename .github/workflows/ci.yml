@@ -18,6 +18,7 @@ jobs:
         java: [8, 11, 17, 21]
     steps:
       - name: Checkout
+  <<<<<<< HEAD
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -42,11 +43,29 @@ jobs:
       - name: Maven Test Without Spring 6.x
         run: mvn --batch-mode test -Dsurefire.jdk-toolchain-version=${{ matrix.java }} -Dskip.spring.v6x.test=true
         if: ${{ matrix.java < 17 }}
+  =======
+uses: actions/checkout@v3
+
+- name: Setup Java
+  uses: actions/setup-java@v3
+  with:
+    java-version: ${{ matrix.java }}
+    distribution: 'temurin'
+    architecture: x64
+
+- name: Test with Maven
+  run: mvn --batch-mode test
+  >>>>>>> upstream/master
 
       - name: Build with Maven
         run: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -DminimumPriority=1
 
+  <<<<<<< HEAD
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4.0.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+  =======
+- name: Run Codecov
+  run: bash <(curl -s https://codecov.io/bash)
+  >>>>>>> upstream/master

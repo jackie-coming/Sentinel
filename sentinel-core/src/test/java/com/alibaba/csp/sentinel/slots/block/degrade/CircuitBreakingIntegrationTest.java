@@ -57,6 +57,7 @@ public class CircuitBreakingIntegrationTest extends AbstractTimeBasedTest {
 
     @Test
     public void testSlowRequestMode() {
+<<<<<<<HEAD
         try (MockedStatic<TimeUtil> mocked = super.mockTimeUtil()) {
             CircuitBreakerStateChangeObserver observer = mock(CircuitBreakerStateChangeObserver.class);
             setCurrentMillis(mocked, System.currentTimeMillis() / 1000 * 1000);
@@ -71,6 +72,22 @@ public class CircuitBreakingIntegrationTest extends AbstractTimeBasedTest {
                             .setStatIntervalMs(statIntervalMs).setMinRequestAmount(minRequestAmount)
                             .setSlowRatioThreshold(0.8d).setGrade(0)
             ));
+=======
+          CircuitBreakerStateChangeObserver observer = mock(
+              CircuitBreakerStateChangeObserver.class);
+          setCurrentMillis(System.currentTimeMillis() / 1000 * 1000);
+          int retryTimeoutSec = 5;
+          int maxRt = 50;
+          int statIntervalMs = 20000;
+          int minRequestAmount = 10;
+          String res = "CircuitBreakingIntegrationTest_testSlowRequestMode";
+          EventObserverRegistry.getInstance().addStateChangeObserver(res, observer);
+          DegradeRuleManager.loadRules(Arrays.asList(
+              new DegradeRule(res).setTimeWindow(retryTimeoutSec).setCount(maxRt)
+                  .setStatIntervalMs(statIntervalMs).setMinRequestAmount(minRequestAmount)
+                  .setSlowRatioThreshold(0.8d).setGrade(0)
+          ));
+>>>>>>>upstream / master
 
             // Try first N requests where N = minRequestAmount.
             for (int i = 0; i < minRequestAmount; i++) {
@@ -121,6 +138,7 @@ public class CircuitBreakingIntegrationTest extends AbstractTimeBasedTest {
 
     @Test
     public void testSlowRequestModeUseDefaultRule() {
+<<<<<<<HEAD
         try (MockedStatic<TimeUtil> mocked = super.mockTimeUtil()) {
             CircuitBreakerStateChangeObserver observer = mock(CircuitBreakerStateChangeObserver.class);
             setCurrentMillis(mocked, System.currentTimeMillis() / 1000 * 1000);
@@ -130,6 +148,93 @@ public class CircuitBreakingIntegrationTest extends AbstractTimeBasedTest {
             int minRequestAmount = 10;
             String res = "CircuitBreakingIntegrationTest_testSlowRequestModeUseDefaultRule";
             EventObserverRegistry.getInstance().addStateChangeObserver(res, observer);
+=======
+          CircuitBreakerStateChangeObserver observer = mock(
+              CircuitBreakerStateChangeObserver.class);
+          setCurrentMillis(System.currentTimeMillis() / 1000 * 1000);
+          int retryTimeoutSec = 5;
+          int maxRt = 50;
+          int statIntervalMs = 20000;
+          int minRequestAmount = 10;
+          String res = "CircuitBreakingIntegrationTest_testSlowRequestModeUseDefaultRule";
+          EventObserverRegistry.getInstance().addStateChangeObserver(res, observer);
+
+          DefaultCircuitBreakerRuleManager.loadRules(Arrays.asList(
+              new DegradeRule(DefaultCircuitBreakerRuleManager.DEFAULT_KEY).setTimeWindow(
+                      retryTimeoutSec).setCount(maxRt)
+                  .setStatIntervalMs(statIntervalMs).setMinRequestAmount(minRequestAmount)
+                  .setSlowRatioThreshold(0.8d).setGrade(0)));
+
+          // Try first N requests where N = minRequestAmount.
+          for (int i = 0; i < minRequestAmount; i++) {
+            if (i < 7) {
+              assertTrue(
+                  entryAndSleepFor(res, maxRt + ThreadLocalRandom.current().nextInt(10, 20)));
+            } else {
+              assertTrue(
+                  entryAndSleepFor(res, maxRt + ThreadLocalRandom.current().nextInt(-20, -10)));
+            }
+          }
+
+          // Till now slow ratio should be 70%.
+          assertTrue(entryAndSleepFor(res, maxRt + ThreadLocalRandom.current().nextInt(10, 20)));
+          assertTrue(entryAndSleepFor(res, maxRt + ThreadLocalRandom.current().nextInt(10, 20)));
+          assertTrue(entryAndSleepFor(res, maxRt + ThreadLocalRandom.current().nextInt(10, 20)));
+          assertTrue(entryAndSleepFor(res, maxRt + ThreadLocalRandom.current().nextInt(10, 20)));
+          assertTrue(entryAndSleepFor(res, maxRt + ThreadLocalRandom.current().nextInt(10, 20)));
+          assertTrue(entryAndSleepFor(res, maxRt + ThreadLocalRandom.current().nextInt(10, 20)));
+          // Circuit breaker has transformed to OPEN since here.
+          verify(observer)
+              .onStateChange(eq(State.CLOSED), eq(State.OPEN), any(DegradeRule.class), anyDouble());
+          assertEquals(State.OPEN,
+              DefaultCircuitBreakerRuleManager.getDefaultCircuitBreakers(res).get(0)
+                  .currentState());
+          assertFalse(entryAndSleepFor(res, 1));
+
+          sleepSecond(1);
+          assertFalse(entryAndSleepFor(res, 1));
+          sleepSecond(retryTimeoutSec);
+          // Test HALF-OPEN to OPEN.
+          assertTrue(entryAndSleepFor(res, maxRt + ThreadLocalRandom.current().nextInt(10, 20)));
+
+          verify(observer)
+              .onStateChange(eq(State.OPEN), eq(State.HALF_OPEN), any(DegradeRule.class),
+                  nullable(Double.class));
+          verify(observer)
+              .onStateChange(eq(State.HALF_OPEN), eq(State.OPEN), any(DegradeRule.class),
+                  anyDouble());
+          // Wait for next retry timeout;
+          reset(observer);
+          sleepSecond(retryTimeoutSec + 1);
+          assertTrue(entryAndSleepFor(res, maxRt - ThreadLocalRandom.current().nextInt(10, 20)));
+          verify(observer)
+              .onStateChange(eq(State.OPEN), eq(State.HALF_OPEN), any(DegradeRule.class),
+                  nullable(Double.class));
+          verify(observer)
+              .onStateChange(eq(State.HALF_OPEN), eq(State.CLOSED), any(DegradeRule.class),
+                  nullable(Double.class));
+          // Now circuit breaker has been closed.
+          assertTrue(entryAndSleepFor(res, maxRt + ThreadLocalRandom.current().nextInt(10, 20)));
+
+          EventObserverRegistry.getInstance().removeStateChangeObserver(res);
+        }
+
+      @Test
+      public void testExceptionRatioMode () {
+        CircuitBreakerStateChangeObserver observer = mock(CircuitBreakerStateChangeObserver.class);
+        setCurrentMillis(System.currentTimeMillis() / 1000 * 1000);
+        int retryTimeoutSec = 5;
+        double maxRatio = 0.5;
+        int statIntervalMs = 25000;
+        final int minRequestAmount = 10;
+        String res = "CircuitBreakingIntegrationTest_testExceptionRatioMode";
+        EventObserverRegistry.getInstance().addStateChangeObserver(res, observer);
+        DegradeRuleManager.loadRules(Arrays.asList(
+            new DegradeRule(res).setTimeWindow(retryTimeoutSec).setCount(maxRatio)
+                .setStatIntervalMs(statIntervalMs).setMinRequestAmount(minRequestAmount)
+                .setGrade(RuleConstant.DEGRADE_GRADE_EXCEPTION_RATIO)
+        ));
+>>>>>>>upstream / master
 
             DefaultCircuitBreakerRuleManager.loadRules(Arrays.asList(
                     new DegradeRule(DefaultCircuitBreakerRuleManager.DEFAULT_KEY).setTimeWindow(retryTimeoutSec).setCount(maxRt)
@@ -184,6 +289,7 @@ public class CircuitBreakingIntegrationTest extends AbstractTimeBasedTest {
     }
 
     @Test
+<<<<<<<HEAD
     public void testExceptionRatioMode() {
         try (MockedStatic<TimeUtil> mocked = super.mockTimeUtil()) {
             CircuitBreakerStateChangeObserver observer = mock(CircuitBreakerStateChangeObserver.class);
@@ -240,6 +346,8 @@ public class CircuitBreakingIntegrationTest extends AbstractTimeBasedTest {
     }
 
     @Test
+=======
+    >>>>>>>upstream/master
     public void testExceptionCountMode() {
         // TODO
     }
@@ -260,6 +368,7 @@ public class CircuitBreakingIntegrationTest extends AbstractTimeBasedTest {
 
     @Test
     public void testMultipleHalfOpenedBreakers() {
+<<<<<<<HEAD
         try (MockedStatic<TimeUtil> mocked = super.mockTimeUtil()) {
             CircuitBreakerStateChangeObserver observer = mock(CircuitBreakerStateChangeObserver.class);
             setCurrentMillis(mocked, System.currentTimeMillis() / 1000 * 1000);
@@ -300,6 +409,30 @@ public class CircuitBreakingIntegrationTest extends AbstractTimeBasedTest {
             }
 
             verifyState(DegradeRuleManager.getCircuitBreakers(res), -4);
+=======
+          CircuitBreakerStateChangeObserver observer = mock(
+              CircuitBreakerStateChangeObserver.class);
+          setCurrentMillis(System.currentTimeMillis() / 1000 * 1000);
+          int retryTimeoutSec = 2;
+          int maxRt = 50;
+          int statIntervalMs = 20000;
+          int minRequestAmount = 1;
+          String res = "CircuitBreakingIntegrationTest_testMultipleHalfOpenedBreakers";
+          EventObserverRegistry.getInstance().addStateChangeObserver(res, observer);
+          // initial two rules
+          DegradeRuleManager.loadRules(Arrays.asList(
+              new DegradeRule(res).setTimeWindow(retryTimeoutSec).setCount(maxRt)
+                  .setStatIntervalMs(statIntervalMs).setMinRequestAmount(minRequestAmount)
+                  .setSlowRatioThreshold(0.8d).setGrade(0),
+              new DegradeRule(res).setTimeWindow(retryTimeoutSec * 2).setCount(maxRt)
+                  .setStatIntervalMs(statIntervalMs).setMinRequestAmount(minRequestAmount)
+                  .setSlowRatioThreshold(0.8d).setGrade(0)
+          ));
+          assertTrue(entryAndSleepFor(res, 100));
+          // they are open now
+          for (CircuitBreaker breaker : DegradeRuleManager.getCircuitBreakers(res)) {
+            assertEquals(CircuitBreaker.State.OPEN, breaker.currentState());
+>>>>>>>upstream / master
         }
     }
 

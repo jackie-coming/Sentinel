@@ -16,7 +16,6 @@
 package com.alibaba.csp.sentinel.log.jul;
 
 import com.alibaba.csp.sentinel.concurrent.NamedThreadFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
@@ -48,6 +47,21 @@ class DateFileLogHandler extends Handler {
             new NamedThreadFactory("sentinel-datafile-log-executor", true),
             new ThreadPoolExecutor.DiscardOldestPolicy()
     );
+
+  static {
+    // allow all thread could be stopped
+    executor.allowCoreThreadTimeOut(true);
+  }
+
+  private static final ThreadPoolExecutor executor = new ThreadPoolExecutor(
+      1,
+      5,
+      1,
+      TimeUnit.HOURS,
+      new ArrayBlockingQueue<Runnable>(1024),
+      new NamedThreadFactory("sentinel-datafile-log-executor", true),
+      new ThreadPoolExecutor.DiscardOldestPolicy()
+  );
 
     static {
         // allow all thread could be stopped

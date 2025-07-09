@@ -15,9 +15,8 @@
  */
 package com.alibaba.csp.sentinel.dashboard.datasource.entity.rule;
 
-import java.util.Date;
-
 import com.alibaba.csp.sentinel.slots.block.degrade.DegradeRule;
+import java.util.Date;
 
 /**
  * @author leyou
@@ -38,6 +37,10 @@ public class DegradeRuleEntity implements RuleEntity {
     private Integer minRequestAmount;
     private Double slowRatioThreshold;
     private Integer statIntervalMs;
+  /**
+   * Whether to match resource names according to regular rules
+   */
+  private boolean regex = false;
 
     private Date gmtCreate;
     private Date gmtModified;
@@ -55,7 +58,8 @@ public class DegradeRuleEntity implements RuleEntity {
         entity.setMinRequestAmount(rule.getMinRequestAmount());
         entity.setSlowRatioThreshold(rule.getSlowRatioThreshold());
         entity.setStatIntervalMs(rule.getStatIntervalMs());
-        return entity;
+      entity.setRegex(rule.isRegex());
+      return entity;
     }
 
     @Override
@@ -162,7 +166,15 @@ public class DegradeRuleEntity implements RuleEntity {
         return this;
     }
 
-    @Override
+  public boolean isRegex() {
+    return regex;
+  }
+
+  public void setRegex(boolean regex) {
+    this.regex = regex;
+  }
+
+  @Override
     public Date getGmtCreate() {
         return gmtCreate;
     }
@@ -197,6 +209,7 @@ public class DegradeRuleEntity implements RuleEntity {
             rule.setStatIntervalMs(statIntervalMs);
         }
 
-        return rule;
+      rule.setRegex(regex);
+      return rule;
     }
 }

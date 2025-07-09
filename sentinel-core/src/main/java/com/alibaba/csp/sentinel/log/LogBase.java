@@ -16,11 +16,11 @@
 package com.alibaba.csp.sentinel.log;
 
 
+import static com.alibaba.csp.sentinel.util.ConfigUtil.addSeparator;
+
 import java.io.File;
 import java.util.Properties;
 import java.util.logging.Level;
-
-import static com.alibaba.csp.sentinel.util.ConfigUtil.addSeparator;
 
 /**
  * <p>The base config class for logging.</p>
@@ -115,7 +115,8 @@ public class LogBase {
             try {
                 logLevel = Level.parse(logLevelString);
             } catch (IllegalArgumentException e) {
-                System.out.println("Log level : " + logLevel + " is invalid. Use default : " + LOG_DEFAULT_LEVEL.toString());
+                System.out.println("Log level : " + logLevelString + " is invalid. Use default : "
+                    + LOG_DEFAULT_LEVEL.toString());
             }
         }
         System.out.println("INFO: Sentinel log level is: " + logLevel);

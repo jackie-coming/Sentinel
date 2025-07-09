@@ -2,6 +2,7 @@ name: "CodeQL"
 
 on:
   push:
+  <<<<<<< HEAD
     branches:
       - master
       - "1.8"
@@ -11,6 +12,12 @@ on:
       - master
       - "1.8"
       - "2.0"
+  =======
+branches: [ "master" ]
+pull_request:
+  # The branches below must be a subset of the branches above
+  branches: [ "master" ]
+  >>>>>>> upstream/master
   schedule:
     - cron: '00 09 * * 3'
 
@@ -34,7 +41,11 @@ jobs:
 
     steps:
     - name: Checkout repository
+  <<<<<<< HEAD
       uses: actions/checkout@v4
+  =======
+uses: actions/checkout@v3
+  >>>>>>> upstream/master
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
@@ -48,12 +59,15 @@ jobs:
         # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
         # queries: security-extended,security-and-quality
 
+  <<<<<<< HEAD
     - name: Setup Java
       uses: actions/setup-java@v4
       with:
         java-version: 17
         distribution: 'temurin'
         cache: 'maven'
+  =======
+  >>>>>>> upstream/master
 
     # Autobuild attempts to build any compiled languages  (C/C++, C#, Go, or Java).
     # If this step fails, then you should remove it and run the build manually (see below)

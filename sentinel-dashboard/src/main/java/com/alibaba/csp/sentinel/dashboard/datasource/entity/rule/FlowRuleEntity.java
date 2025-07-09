@@ -15,10 +15,9 @@
  */
 package com.alibaba.csp.sentinel.dashboard.datasource.entity.rule;
 
-import java.util.Date;
-
 import com.alibaba.csp.sentinel.slots.block.flow.ClusterFlowConfig;
 import com.alibaba.csp.sentinel.slots.block.flow.FlowRule;
+import java.util.Date;
 
 /**
  * @author leyou
@@ -57,6 +56,11 @@ public class FlowRuleEntity implements RuleEntity {
      */
     private ClusterFlowConfig clusterConfig;
 
+  /**
+   * Whether to match resource names according to regular rules
+   */
+  private boolean regex = false;
+
     private Date gmtCreate;
     private Date gmtModified;
 
@@ -76,7 +80,8 @@ public class FlowRuleEntity implements RuleEntity {
         entity.setMaxQueueingTimeMs(rule.getMaxQueueingTimeMs());
         entity.setClusterMode(rule.isClusterMode());
         entity.setClusterConfig(rule.getClusterConfig());
-        return entity;
+      entity.setRegex(rule.isRegex());
+      return entity;
     }
 
     @Override
@@ -206,7 +211,15 @@ public class FlowRuleEntity implements RuleEntity {
         return this;
     }
 
-    @Override
+  public boolean isRegex() {
+    return regex;
+  }
+
+  public void setRegex(boolean regex) {
+    this.regex = regex;
+  }
+
+  @Override
     public Date getGmtCreate() {
         return gmtCreate;
     }
@@ -243,7 +256,8 @@ public class FlowRuleEntity implements RuleEntity {
         }
         flowRule.setClusterMode(clusterMode);
         flowRule.setClusterConfig(clusterConfig);
-        return flowRule;
+      flowRule.setRegex(regex);
+      return flowRule;
     }
 
 }

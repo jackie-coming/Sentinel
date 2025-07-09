@@ -31,7 +31,11 @@ import com.alibaba.csp.sentinel.util.VersionUtil;
  */
 public final class Constants {
 
+<<<<<<<HEAD
     public static final String SENTINEL_VERSION = VersionUtil.getVersion("1.8.8");
+=======
+  public static final String SENTINEL_VERSION = VersionUtil.getVersion("2.0.0");
+>>>>>>>upstream/master
 
     public final static int MAX_CONTEXT_NAME_SIZE = 2000;
     public final static int MAX_SLOT_CHAIN_SIZE = 6000;

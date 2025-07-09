@@ -15,10 +15,8 @@
  */
 package com.alibaba.csp.sentinel.dashboard.datasource.entity.rule;
 
-import java.util.Date;
-
 import com.alibaba.csp.sentinel.slots.block.AbstractRule;
-import com.alibaba.csp.sentinel.slots.block.Rule;
+import java.util.Date;
 
 /**
  * @author Eric Zhao
@@ -33,6 +31,11 @@ public abstract class AbstractRuleEntity<T extends AbstractRule> implements Rule
     protected Integer port;
 
     protected T rule;
+
+  /**
+   * Whether to match resource names according to regular rules
+   */
+  private boolean regex = false;
 
     private Date gmtCreate;
     private Date gmtModified;
@@ -86,7 +89,16 @@ public abstract class AbstractRuleEntity<T extends AbstractRule> implements Rule
         return this;
     }
 
-    @Override
+  public boolean isRegex() {
+    return regex;
+  }
+
+  public AbstractRuleEntity<T> setRegex(boolean regex) {
+    this.regex = regex;
+    return this;
+  }
+
+  @Override
     public Date getGmtCreate() {
         return gmtCreate;
     }
