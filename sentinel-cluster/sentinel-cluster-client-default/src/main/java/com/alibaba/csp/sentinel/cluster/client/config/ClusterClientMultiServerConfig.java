@@ -15,6 +15,7 @@
  */
 package com.alibaba.csp.sentinel.cluster.client.config;
 
+import com.alibaba.csp.sentinel.cluster.client.loadbalance.LoadBalanceStrategyType;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,9 +30,9 @@ public class ClusterClientMultiServerConfig {
   private List<ServerNode> serverNodes = new ArrayList<>();
 
   /**
-   * 负载均衡策略: ROUND_ROBIN(轮询), RANDOM(随机), WEIGHT(权重), FAILOVER(故障转移)
+   * 负载均衡策略（默认使用一致性哈希）
    */
-  private String loadBalanceStrategy = "ROUND_ROBIN";
+  private LoadBalanceStrategyType loadBalanceStrategy = LoadBalanceStrategyType.CONSISTENT_HASH;
 
   /**
    * 故障检测间隔(毫秒)
@@ -140,12 +141,26 @@ public class ClusterClientMultiServerConfig {
     return this;
   }
 
-  public String getLoadBalanceStrategy() {
+  public LoadBalanceStrategyType getLoadBalanceStrategy() {
     return loadBalanceStrategy;
   }
 
-  public ClusterClientMultiServerConfig setLoadBalanceStrategy(String loadBalanceStrategy) {
+  public ClusterClientMultiServerConfig setLoadBalanceStrategy(
+      LoadBalanceStrategyType loadBalanceStrategy) {
     this.loadBalanceStrategy = loadBalanceStrategy;
+    return this;
+  }
+
+  /**
+   * 设置负载均衡策略（兼容字符串方式）
+   *
+   * @param strategyName 策略名称字符串
+   * @return 当前配置对象
+   * @deprecated 推荐使用 {@link #setLoadBalanceStrategy(LoadBalanceStrategyType)}
+   */
+  @Deprecated
+  public ClusterClientMultiServerConfig setLoadBalanceStrategy(String strategyName) {
+    this.loadBalanceStrategy = LoadBalanceStrategyType.fromString(strategyName);
     return this;
   }
 
