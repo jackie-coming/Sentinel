@@ -13,6 +13,8 @@
 
     <properties>
         <spring.boot.version>2.5.12</spring.boot.version>
+      <!-- 添加SnakeYAML版本属性，解决版本兼容性问题 -->
+      <snakeyaml.version>1.30</snakeyaml.version>
     </properties>
 
     <dependencies>
@@ -61,5 +63,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
             <version>${spring.boot.version}</version>
         </dependency>
+
+      <!-- 显式声明SnakeYAML版本，解决版本冲突 -->
+      <dependency>
+        <groupId>org.yaml</groupId>
+        <artifactId>snakeyaml</artifactId>
+        <version>${snakeyaml.version}</version>
+      </dependency>
     </dependencies>
 </project>

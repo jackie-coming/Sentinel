@@ -15,19 +15,19 @@
  */
 package com.alibaba.csp.sentinel.demo.flow;
 
+import com.alibaba.csp.sentinel.Entry;
+import com.alibaba.csp.sentinel.SphU;
+import com.alibaba.csp.sentinel.context.ContextUtil;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
+import com.alibaba.csp.sentinel.slots.block.RuleConstant;
+import com.alibaba.csp.sentinel.slots.block.flow.FlowRule;
+import com.alibaba.csp.sentinel.slots.block.flow.FlowRuleManager;
+import com.alibaba.csp.sentinel.util.TimeUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import com.alibaba.csp.sentinel.util.TimeUtil;
-import com.alibaba.csp.sentinel.Entry;
-import com.alibaba.csp.sentinel.SphU;
-import com.alibaba.csp.sentinel.slots.block.BlockException;
-import com.alibaba.csp.sentinel.slots.block.RuleConstant;
-import com.alibaba.csp.sentinel.slots.block.flow.FlowRule;
-import com.alibaba.csp.sentinel.slots.block.flow.FlowRuleManager;
 
 /**
  * @author jialiang.linjl
@@ -50,6 +50,7 @@ public class FlowQpsDemo {
         initFlowQpsRule();
 
         tick();
+      // tickMemory();
         // first make the system run on a very low condition
         simulateTraffic();
 
@@ -62,9 +63,12 @@ public class FlowQpsDemo {
         List<FlowRule> rules = new ArrayList<FlowRule>();
         FlowRule rule1 = new FlowRule();
         rule1.setResource(KEY);
+      rule1.setClusterMode(false);
+
         // set limit qps to 20
-        rule1.setCount(20);
+      rule1.setCount(0.5);
         rule1.setGrade(RuleConstant.FLOW_GRADE_QPS);
+      rule1.setControlBehavior(RuleConstant.CONTROL_BEHAVIOR_RATE_LIMITER);
         rule1.setLimitApp("default");
         rules.add(rule1);
         FlowRuleManager.loadRules(rules);
@@ -84,6 +88,43 @@ public class FlowQpsDemo {
         timer.start();
     }
 
+  private static void tickMemory() {
+    Thread timer = new Thread(new TimerMemoryTask());
+    timer.setName("sentinel-timer-memory-task");
+    timer.start();
+  }
+
+  static class TimerMemoryTask implements Runnable {
+
+    @Override
+    public void run() {
+      long start = System.currentTimeMillis();
+      System.out.println("begin to TimerMemoryTask!!!");
+
+      Runtime runtime = Runtime.getRuntime();
+      long initialMemory = runtime.totalMemory() - runtime.freeMemory();
+      System.out.println("初始内存: " + initialMemory / 1024 / 1024 + "MB");
+
+      while (!stop) {
+        try {
+          TimeUnit.SECONDS.sleep(1);
+        } catch (InterruptedException e) {
+        }
+        // 记录当前内存
+        long currentMemory = runtime.totalMemory() - runtime.freeMemory();
+        System.out.println("当前内存: " + currentMemory / 1024 / 1024 + "MB");
+        System.out.println(
+            "内存增长: " + (currentMemory - initialMemory) / 1024 / 1024 + "MB");
+
+      }
+
+      long cost = System.currentTimeMillis() - start;
+      System.out.println("time cost: " + cost + " ms");
+      System.out.println("total:" + total.get() + ", pass:" + pass.get()
+          + ", block:" + block.get());
+      System.exit(0);
+    }
+  }
     static class TimerTask implements Runnable {
 
         @Override
@@ -133,6 +174,7 @@ public class FlowQpsDemo {
         @Override
         public void run() {
             while (!stop) {
+              ContextUtil.enter("web-request", "web-app");
                 Entry entry = null;
 
                 try {
