@@ -15,18 +15,27 @@
  */
 package com.alibaba.csp.sentinel.cluster.client.loadbalance;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import com.alibaba.csp.sentinel.cluster.client.config.ClusterClientMultiServerConfig.ServerNode;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.*;
-
-import static org.junit.Assert.*;
 
 /**
  * 负载均衡策略测试类
  * <p>
- * 只测试支持规则ID路由的策略
+ * 仅测试一致性哈希策略
  *
  * @author Test
  * @since 1.4.0
@@ -190,40 +199,9 @@ public class LoadBalanceStrategyTest {
     assertFalse("不应该选择禁用的节点", selectedServers.contains("192.168.1.11:18730"));
   }
 
-  // ==================== 规则ID哈希策略测试 ====================
-
   @Test
-  public void testRuleIdHashStrategy_Basic() {
-    RuleIdHashLoadBalanceStrategy strategy = new RuleIdHashLoadBalanceStrategy();
-
-    ServerNode node = strategy.select(nodes);
-    assertNotNull("规则ID哈希应该返回节点", node);
-  }
-
-  @Test
-  public void testRuleIdHashStrategy_RuleIdConsistency() {
-    RuleIdHashLoadBalanceStrategy strategy = new RuleIdHashLoadBalanceStrategy();
-
-    Long testRuleId = 1000L;
-
-    // 同一规则ID应该路由到同一服务器
-    ServerNode node1 = strategy.selectByRuleId(nodes, testRuleId);
-    ServerNode node2 = strategy.selectByRuleId(nodes, testRuleId);
-    ServerNode node3 = strategy.selectByRuleId(nodes, testRuleId);
-
-    assertNotNull("第1次选择不应为null", node1);
-    assertNotNull("第2次选择不应为null", node2);
-    assertNotNull("第3次选择不应为null", node3);
-
-    assertEquals("相同规则ID应该路由到同一服务器", node1.getHost(), node2.getHost());
-    assertEquals("相同规则ID应该路由到同一服务器", node1.getPort(), node2.getPort());
-    assertEquals("相同规则ID应该路由到同一服务器", node1.getHost(), node3.getHost());
-    assertEquals("相同规则ID应该路由到同一服务器", node1.getPort(), node3.getPort());
-  }
-
-  @Test
-  public void testRuleIdHashStrategy_Distribution() {
-    RuleIdHashLoadBalanceStrategy strategy = new RuleIdHashLoadBalanceStrategy();
+  public void testConsistentHashStrategy_LoadDistribution() {
+    ConsistentHashLoadBalanceStrategy strategy = new ConsistentHashLoadBalanceStrategy();
 
     Map<String, Integer> distribution = new HashMap<>();
 
@@ -243,97 +221,34 @@ public class LoadBalanceStrategyTest {
     }
   }
 
-  @Test
-  public void testRuleIdHashStrategy_NodeScaling() {
-    RuleIdHashLoadBalanceStrategy strategy = new RuleIdHashLoadBalanceStrategy();
-
-    // 记录100个规则的初始路由
-    Map<Long, String> originalRoutes = new HashMap<>();
-    for (long ruleId = 1L; ruleId <= 100; ruleId++) {
-      ServerNode node = strategy.selectByRuleId(nodes, ruleId);
-      originalRoutes.put(ruleId, node.getHost() + ":" + node.getPort());
-    }
-
-    // 添加第4个节点
-    List<ServerNode> expandedNodes = new ArrayList<>(nodes);
-    expandedNodes.add(new ServerNode("192.168.1.13", 18730));
-
-    // 统计变化的路由数量
-    int changedCount = 0;
-    for (long ruleId = 1L; ruleId <= 100; ruleId++) {
-      ServerNode node = strategy.selectByRuleId(expandedNodes, ruleId);
-      String newRoute = node.getHost() + ":" + node.getPort();
-      if (!originalRoutes.get(ruleId).equals(newRoute)) {
-        changedCount++;
-      }
-    }
-
-    // 简单哈希会导致大部分路由变化，应该大于50%
-    assertTrue("节点扩容后大部分路由应该改变", changedCount > 50);
-  }
-
-  @Test
-  public void testRuleIdHashStrategy_NullNodes() {
-    RuleIdHashLoadBalanceStrategy strategy = new RuleIdHashLoadBalanceStrategy();
-
-    ServerNode node = strategy.select(null);
-    assertNull("空节点列表应该返回null", node);
-  }
-
-  @Test
-  public void testRuleIdHashStrategy_EmptyNodes() {
-    RuleIdHashLoadBalanceStrategy strategy = new RuleIdHashLoadBalanceStrategy();
-
-    ServerNode node = strategy.select(new ArrayList<>());
-    assertNull("空节点列表应该返回null", node);
-  }
-
-  @Test
-  public void testRuleIdHashStrategy_NullRuleId() {
-    RuleIdHashLoadBalanceStrategy strategy = new RuleIdHashLoadBalanceStrategy();
-
-    ServerNode node = strategy.selectByRuleId(nodes, null);
-    assertNull("规则ID为null应该返回null", node);
-  }
-
-  @Test
-  public void testRuleIdHashStrategy_Reset() {
-    RuleIdHashLoadBalanceStrategy strategy = new RuleIdHashLoadBalanceStrategy();
-
-    strategy.select(nodes);
-    strategy.reset();
-
-    // 无状态策略，reset不应该影响功能
-    ServerNode node = strategy.select(nodes);
-    assertNotNull("重置后选择应该正常", node);
-  }
-
   // ==================== 策略工厂测试 ====================
 
   @Test
-  public void testLoadBalanceStrategyFactory_GetAllStrategies() {
-    // 使用枚举类型获取策略（只有2个支持规则ID路由的策略）
+  public void testLoadBalanceStrategyFactory_GetStrategy() {
+    // 使用枚举类型获取策略
     assertNotNull("应该能获取CONSISTENT_HASH策略",
         LoadBalanceStrategyFactory.getStrategy(LoadBalanceStrategyType.CONSISTENT_HASH));
-    assertNotNull("应该能获取RULE_ID_HASH策略",
-        LoadBalanceStrategyFactory.getStrategy(LoadBalanceStrategyType.RULE_ID_HASH));
+
+    assertTrue("应该返回一致性哈希策略",
+        LoadBalanceStrategyFactory.getStrategy(LoadBalanceStrategyType.CONSISTENT_HASH)
+            instanceof ConsistentHashLoadBalanceStrategy);
   }
 
   @Test
   @SuppressWarnings("deprecation")
   public void testLoadBalanceStrategyFactory_LegacyStringMode() {
-    // 测试向后兼容的字符串模式（旧策略自动映射到一致性哈希）
+    // 测试向后兼容的字符串模式（所有策略都返回一致性哈希）
     LoadBalanceStrategy strategy1 = LoadBalanceStrategyFactory.getStrategy("ROUND_ROBIN");
-    assertNotNull("旧的ROUND_ROBIN策略应该映射到一致性哈希", strategy1);
-    assertTrue("应该映射到一致性哈希", strategy1 instanceof ConsistentHashLoadBalanceStrategy);
+    assertNotNull("旧的ROUND_ROBIN策略应该返回一致性哈希", strategy1);
+    assertTrue("应该返回一致性哈希", strategy1 instanceof ConsistentHashLoadBalanceStrategy);
 
     LoadBalanceStrategy strategy2 = LoadBalanceStrategyFactory.getStrategy("RANDOM");
-    assertNotNull("旧的RANDOM策略应该映射到一致性哈希", strategy2);
-    assertTrue("应该映射到一致性哈希", strategy2 instanceof ConsistentHashLoadBalanceStrategy);
+    assertNotNull("旧的RANDOM策略应该返回一致性哈希", strategy2);
+    assertTrue("应该返回一致性哈希", strategy2 instanceof ConsistentHashLoadBalanceStrategy);
 
     LoadBalanceStrategy strategy3 = LoadBalanceStrategyFactory.getStrategy("WEIGHTED");
-    assertNotNull("旧的WEIGHTED策略应该映射到一致性哈希", strategy3);
-    assertTrue("应该映射到一致性哈希", strategy3 instanceof ConsistentHashLoadBalanceStrategy);
+    assertNotNull("旧的WEIGHTED策略应该返回一致性哈希", strategy3);
+    assertTrue("应该返回一致性哈希", strategy3 instanceof ConsistentHashLoadBalanceStrategy);
   }
 
   @Test
@@ -355,57 +270,42 @@ public class LoadBalanceStrategyTest {
 
   @Test
   public void testLoadBalanceStrategyType_FromString() {
-    // 测试支持的策略
-    assertEquals("应该能从字符串转换为枚举", LoadBalanceStrategyType.CONSISTENT_HASH,
+    // 测试所有输入都返回一致性哈希
+    assertEquals("应该返回一致性哈希", LoadBalanceStrategyType.CONSISTENT_HASH,
         LoadBalanceStrategyType.fromString("CONSISTENT_HASH"));
-    assertEquals("应该能从字符串转换为枚举", LoadBalanceStrategyType.RULE_ID_HASH,
-        LoadBalanceStrategyType.fromString("RULE_ID_HASH"));
 
-    // 测试大小写不敏感
-    assertEquals("应该不区分大小写", LoadBalanceStrategyType.CONSISTENT_HASH,
-        LoadBalanceStrategyType.fromString("consistent_hash"));
-
-    // 测试未知值返回默认值（一致性哈希）
-    assertEquals("未知值应该返回默认值", LoadBalanceStrategyType.CONSISTENT_HASH,
+    assertEquals("未知值应该返回一致性哈希", LoadBalanceStrategyType.CONSISTENT_HASH,
         LoadBalanceStrategyType.fromString("UNKNOWN"));
-    assertEquals("null应该返回默认值", LoadBalanceStrategyType.CONSISTENT_HASH,
+
+    assertEquals("null应该返回一致性哈希", LoadBalanceStrategyType.CONSISTENT_HASH,
         LoadBalanceStrategyType.fromString(null));
 
-    // 测试旧策略名称映射到一致性哈希
-    assertEquals("旧的ROUND_ROBIN应该映射到CONSISTENT_HASH", LoadBalanceStrategyType.CONSISTENT_HASH,
-        LoadBalanceStrategyType.fromString("ROUND_ROBIN"));
-    assertEquals("旧的RANDOM应该映射到CONSISTENT_HASH", LoadBalanceStrategyType.CONSISTENT_HASH,
-        LoadBalanceStrategyType.fromString("RANDOM"));
-    assertEquals("旧的WEIGHT应该映射到CONSISTENT_HASH", LoadBalanceStrategyType.CONSISTENT_HASH,
-        LoadBalanceStrategyType.fromString("WEIGHT"));
+    assertEquals("空字符串应该返回一致性哈希", LoadBalanceStrategyType.CONSISTENT_HASH,
+        LoadBalanceStrategyType.fromString(""));
   }
 
   @Test
   public void testLoadBalanceStrategyType_SupportsRuleIdRouting() {
-    // 所有策略都支持规则ID路由
+    // 一致性哈希支持规则ID路由
     assertTrue("一致性哈希应该支持规则ID路由",
         LoadBalanceStrategyType.CONSISTENT_HASH.supportsRuleIdRouting());
-    assertTrue("规则ID哈希应该支持规则ID路由",
-        LoadBalanceStrategyType.RULE_ID_HASH.supportsRuleIdRouting());
   }
 
   @Test
   public void testLoadBalanceStrategyType_GetDescription() {
     assertEquals("一致性哈希描述应该正确", "一致性哈希",
         LoadBalanceStrategyType.CONSISTENT_HASH.getDescription());
-    assertEquals("规则ID哈希描述应该正确", "规则ID哈希",
-        LoadBalanceStrategyType.RULE_ID_HASH.getDescription());
   }
 
   @Test
   public void testLoadBalanceStrategyType_AllValues() {
-    // 验证只有2个枚举值
+    // 验证只有1个枚举值
     LoadBalanceStrategyType[] values = LoadBalanceStrategyType.values();
-    assertEquals("应该只有2个策略", 2, values.length);
+    assertEquals("应该只有1个策略", 1, values.length);
 
-    // 验证都支持规则ID路由
+    // 验证支持规则ID路由
     for (LoadBalanceStrategyType type : values) {
-      assertTrue("所有策略都应该支持规则ID路由", type.supportsRuleIdRouting());
+      assertTrue("策略应该支持规则ID路由", type.supportsRuleIdRouting());
     }
   }
 
@@ -434,76 +334,35 @@ public class LoadBalanceStrategyTest {
     }
   }
 
-  @Test
-  public void testConcurrentAccess_RuleIdHash() throws InterruptedException {
-    RuleIdHashLoadBalanceStrategy strategy = new RuleIdHashLoadBalanceStrategy();
-
-    int threadCount = 10;
-    Thread[] threads = new Thread[threadCount];
-
-    for (int i = 0; i < threadCount; i++) {
-      final long baseRuleId = i * 100L;
-      threads[i] = new Thread(() -> {
-        for (long ruleId = baseRuleId; ruleId < baseRuleId + 100; ruleId++) {
-          ServerNode node = strategy.selectByRuleId(nodes, ruleId);
-          assertNotNull("并发选择不应返回null", node);
-        }
-      });
-      threads[i].start();
-    }
-
-    for (Thread thread : threads) {
-      thread.join();
-    }
-  }
-
-  // ==================== 策略对比测试 ====================
+  // ==================== 扩缩容影响测试 ====================
 
   @Test
-  public void testCompareStrategies_ScalingImpact() {
-    ConsistentHashLoadBalanceStrategy consistentHash = new ConsistentHashLoadBalanceStrategy();
-    RuleIdHashLoadBalanceStrategy ruleIdHash = new RuleIdHashLoadBalanceStrategy();
+  public void testConsistentHashStrategy_MinimalScalingImpact() {
+    ConsistentHashLoadBalanceStrategy strategy = new ConsistentHashLoadBalanceStrategy();
 
     // 记录100个规则的初始路由
-    Map<Long, String> consistentHashRoutes = new HashMap<>();
-    Map<Long, String> ruleIdHashRoutes = new HashMap<>();
-
+    Map<Long, String> originalRoutes = new HashMap<>();
     for (long ruleId = 1L; ruleId <= 100; ruleId++) {
-      ServerNode node1 = consistentHash.selectByRuleId(nodes, ruleId);
-      consistentHashRoutes.put(ruleId, node1.getHost() + ":" + node1.getPort());
-
-      ServerNode node2 = ruleIdHash.selectByRuleId(nodes, ruleId);
-      ruleIdHashRoutes.put(ruleId, node2.getHost() + ":" + node2.getPort());
+      ServerNode node = strategy.selectByRuleId(nodes, ruleId);
+      originalRoutes.put(ruleId, node.getHost() + ":" + node.getPort());
     }
 
     // 添加第4个节点
     List<ServerNode> expandedNodes = new ArrayList<>(nodes);
     expandedNodes.add(new ServerNode("192.168.1.13", 18730));
 
-    // 统计一致性哈希的变化
-    int consistentHashChanges = 0;
+    // 统计变化的路由数量
+    int changedCount = 0;
     for (long ruleId = 1L; ruleId <= 100; ruleId++) {
-      ServerNode node = consistentHash.selectByRuleId(expandedNodes, ruleId);
+      ServerNode node = strategy.selectByRuleId(expandedNodes, ruleId);
       String newRoute = node.getHost() + ":" + node.getPort();
-      if (!consistentHashRoutes.get(ruleId).equals(newRoute)) {
-        consistentHashChanges++;
+      if (!originalRoutes.get(ruleId).equals(newRoute)) {
+        changedCount++;
       }
     }
 
-    // 统计规则ID哈希的变化
-    int ruleIdHashChanges = 0;
-    for (long ruleId = 1L; ruleId <= 100; ruleId++) {
-      ServerNode node = ruleIdHash.selectByRuleId(expandedNodes, ruleId);
-      String newRoute = node.getHost() + ":" + node.getPort();
-      if (!ruleIdHashRoutes.get(ruleId).equals(newRoute)) {
-        ruleIdHashChanges++;
-      }
-    }
-
-    // 一致性哈希的变化应该远小于规则ID哈希
-    assertTrue("一致性哈希的影响应该小于规则ID哈希",
-        consistentHashChanges < ruleIdHashChanges);
-    assertTrue("一致性哈希的变化应该少于50%", consistentHashChanges < 50);
-    assertTrue("规则ID哈希的变化应该大于50%", ruleIdHashChanges > 50);
+    // 一致性哈希应该最小化影响
+    assertTrue("节点扩容后变化应该少于50%", changedCount < 50);
+    System.out.println("扩容影响: " + changedCount + "/100 规则发生路由变化");
   }
 }

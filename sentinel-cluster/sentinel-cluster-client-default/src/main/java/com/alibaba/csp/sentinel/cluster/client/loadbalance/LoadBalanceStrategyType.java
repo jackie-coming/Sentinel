@@ -18,7 +18,7 @@ package com.alibaba.csp.sentinel.cluster.client.loadbalance;
 /**
  * 负载均衡策略类型枚举
  * <p>
- * 仅支持按规则ID路由的策略，确保集群限流的准确性
+ * 仅支持一致性哈希策略，确保集群限流的准确性和平滑扩缩容
  *
  * @author Modified for multi-server support
  * @since 1.4.0
@@ -26,32 +26,19 @@ package com.alibaba.csp.sentinel.cluster.client.loadbalance;
 public enum LoadBalanceStrategyType {
 
   /**
-   * 一致性哈希策略 - 按规则ID路由，支持平滑扩缩容（推荐）
+   * 一致性哈希策略 - 按规则ID路由，支持平滑扩缩容
    * <p>
    * 特性：
    * <ul>
-   *   <li>同一规则ID总是路由到同一服务器</li>
-   *   <li>服务器节点变化时，影响范围最小（约25%）</li>
-   *   <li>支持虚拟节点，负载均衡效果好</li>
+   *   <li>同一规则ID总是路由到同一服务器，确保限流准确性</li>
+   *   <li>服务器节点变化时，影响范围最小化（理论上约 K/N，K为节点数）</li>
+   *   <li>支持虚拟节点，负载分布更加均匀</li>
+   *   <li>支持平滑扩缩容，不影响现有规则路由</li>
    * </ul>
    * <p>
-   * 推荐用于集群限流场景，特别是需要频繁扩缩容的场景
+   * 适用于集群限流场景，特别是需要频繁扩缩容的生产环境
    */
-  CONSISTENT_HASH("一致性哈希"),
-
-  /**
-   * 规则ID哈希策略 - 简单的按规则ID哈希取模
-   * <p>
-   * 特性：
-   * <ul>
-   *   <li>同一规则ID总是路由到同一服务器</li>
-   *   <li>实现简单，性能开销小</li>
-   *   <li>节点变化时，大部分路由会改变（约75%）</li>
-   * </ul>
-   * <p>
-   * 适合节点相对稳定的集群限流场景
-   */
-  RULE_ID_HASH("规则ID哈希");
+  CONSISTENT_HASH("一致性哈希");
 
   private final String description;
 
@@ -67,26 +54,15 @@ public enum LoadBalanceStrategyType {
    * 从字符串获取枚举值（兼容旧版本）
    *
    * @param name 策略名称
-   * @return 对应的枚举值，如果不存在则返回默认的一致性哈希策略
+   * @return 始终返回一致性哈希策略
    */
   public static LoadBalanceStrategyType fromString(String name) {
-    if (name == null || name.isEmpty()) {
-      return CONSISTENT_HASH;
-    }
-
-    String upperName = name.toUpperCase().trim();
-
-    try {
-      return valueOf(upperName);
-    } catch (IllegalArgumentException e) {
-      return CONSISTENT_HASH;
-    }
+    // 所有输入都返回一致性哈希策略
+    return CONSISTENT_HASH;
   }
 
   /**
    * 是否支持按规则ID路由
-   * <p>
-   * 注意：所有策略都支持按规则ID路由
    *
    * @return 始终返回true
    */

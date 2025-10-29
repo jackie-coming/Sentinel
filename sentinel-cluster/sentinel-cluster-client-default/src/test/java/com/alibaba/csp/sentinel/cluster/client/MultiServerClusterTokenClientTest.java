@@ -165,14 +165,14 @@ public class MultiServerClusterTokenClientTest {
   }
 
   /**
-   * 测试9: 规则ID哈希负载均衡策略
+   * 测试9: 一致性哈希负载均衡策略（默认策略）
    */
   @Test
-  public void testRuleIdHashLoadBalance() {
-    config.setLoadBalanceStrategy(LoadBalanceStrategyType.RULE_ID_HASH);
+  public void testConsistentHashLoadBalance() {
+    config.setLoadBalanceStrategy(LoadBalanceStrategyType.CONSISTENT_HASH);
     client = new MultiServerClusterTokenClient(config);
 
-    assertNotNull("使用规则ID哈希策略应该成功创建客户端", client);
+    assertNotNull("使用一致性哈希策略应该成功创建客户端", client);
   }
 
   /**
@@ -203,7 +203,6 @@ public class MultiServerClusterTokenClientTest {
   @Test
   public void testLoadBalanceStrategyDescription() {
     assertEquals("一致性哈希策略描述应该正确", "一致性哈希", LoadBalanceStrategyType.CONSISTENT_HASH.getDescription());
-    assertEquals("规则ID哈希策略描述应该正确", "规则ID哈希", LoadBalanceStrategyType.RULE_ID_HASH.getDescription());
   }
 
   /**
@@ -211,9 +210,8 @@ public class MultiServerClusterTokenClientTest {
    */
   @Test
   public void testSupportsRuleIdRouting() {
-    // 所有策略都支持规则ID路由
+    // 一致性哈希策略支持规则ID路由
     assertTrue("一致性哈希应该支持规则ID路由", LoadBalanceStrategyType.CONSISTENT_HASH.supportsRuleIdRouting());
-    assertTrue("规则ID哈希应该支持规则ID路由", LoadBalanceStrategyType.RULE_ID_HASH.supportsRuleIdRouting());
   }
 
   /**
@@ -302,12 +300,12 @@ public class MultiServerClusterTokenClientTest {
     client = new MultiServerClusterTokenClient(config);
     client.start();
 
-    // 切换到规则ID哈希
+    // 更新配置（保持一致性哈希策略）
     ClusterClientMultiServerConfig newConfig = new ClusterClientMultiServerConfig()
         .addServerNode("127.0.0.1", 18730)
         .addServerNode("127.0.0.1", 18731)
         .addServerNode("127.0.0.1", 18732)
-        .setLoadBalanceStrategy(LoadBalanceStrategyType.RULE_ID_HASH);
+        .setLoadBalanceStrategy(LoadBalanceStrategyType.CONSISTENT_HASH);
 
     client.updateConfig(newConfig);
 

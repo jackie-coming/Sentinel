@@ -21,10 +21,13 @@ import com.alibaba.csp.sentinel.cluster.ClusterTransportClient;
 import com.alibaba.csp.sentinel.cluster.TokenResult;
 import com.alibaba.csp.sentinel.cluster.TokenResultStatus;
 import com.alibaba.csp.sentinel.cluster.TokenServerDescriptor;
+import com.alibaba.csp.sentinel.cluster.client.config.ClusterClientAssignConfig;
 import com.alibaba.csp.sentinel.cluster.client.config.ClusterClientMultiServerConfig;
 import com.alibaba.csp.sentinel.cluster.client.config.ClusterClientMultiServerConfig.ServerNode;
+import com.alibaba.csp.sentinel.cluster.client.config.ClusterClientMultiServerConfigManager;
 import com.alibaba.csp.sentinel.cluster.client.loadbalance.LoadBalanceStrategy;
 import com.alibaba.csp.sentinel.cluster.client.loadbalance.LoadBalanceStrategyFactory;
+import com.alibaba.csp.sentinel.cluster.client.loadbalance.LoadBalanceStrategyType;
 import com.alibaba.csp.sentinel.cluster.log.ClusterClientStatLogUtil;
 import com.alibaba.csp.sentinel.cluster.request.ClusterRequest;
 import com.alibaba.csp.sentinel.cluster.request.data.FlowRequestData;
@@ -32,6 +35,7 @@ import com.alibaba.csp.sentinel.cluster.request.data.ParamFlowRequestData;
 import com.alibaba.csp.sentinel.cluster.response.ClusterResponse;
 import com.alibaba.csp.sentinel.cluster.response.data.FlowTokenResponseData;
 import com.alibaba.csp.sentinel.log.RecordLog;
+import com.alibaba.csp.sentinel.util.StringUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -47,7 +51,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * 支持多个Token Server的集群客户端实现
  * <p>
- * 特性: 1. 支持配置多个Token Server 2. 支持负载均衡策略(轮询、随机、权重) 3. 支持自动故障转移 4. 支持健康检查
+ * 特性: 
+ * 1. 支持配置多个Token Server 
+ * 2. 采用一致性哈希负载均衡策略（支持平滑扩缩容） 
+ * 3. 支持自动故障转移 
+ * 4. 支持健康检查
+ * 5. 支持动态配置更新（兼容 DefaultClusterTokenClient）
+ * 6. 支持单服务器到多服务器的平滑切换
  *
  * @author Modified for multi-server support
  * @since 1.4.0
@@ -90,6 +100,11 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
    */
   private static final int MAX_FAILURE_COUNT = 3;
 
+  /**
+   * 构造函数 - 使用指定配置（默认启用动态配置）
+   *
+   * @param config 多服务器配置
+   */
   public MultiServerClusterTokenClient(ClusterClientMultiServerConfig config) {
     if (config == null || config.getServerNodes() == null || config.getServerNodes().isEmpty()) {
       throw new IllegalArgumentException("Config and server nodes cannot be null or empty");
@@ -101,6 +116,143 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
 
     initConnections();
     startHealthCheck();
+
+    // 默认启用动态配置，自动注册监听器（参考 DefaultClusterTokenClient）
+    registerConfigListeners();
+  }
+
+  /**
+   * 构造函数 - 无参构造（用于 SPI 加载）
+   * <p>
+   * 创建一个空的客户端实例，不初始化任何连接。 通过动态配置监听器等待配置推送后自动初始化。
+   * <p>
+   * 适用场景： 1. 通过 SPI 自动加载 2. 完全依赖配置中心动态配置 3. 无需预先指定服务器地址
+   */
+  public MultiServerClusterTokenClient() {
+    this.config = new ClusterClientMultiServerConfig();
+    this.loadBalanceStrategy = LoadBalanceStrategyFactory.getStrategy(
+        LoadBalanceStrategyType.CONSISTENT_HASH);
+
+    // 不初始化连接，等待动态配置
+    // 不启动健康检查，等待有服务器节点后再启动
+
+    // 注册动态配置监听器
+    registerConfigListeners();
+
+    RecordLog.info("[MultiServerClusterTokenClient] Created empty client instance, "
+        + "waiting for dynamic config update");
+  }
+
+  /**
+   * 注册配置监听器（参考 DefaultClusterTokenClient 的构造函数）
+   * <p>
+   * 同时支持： 1. 单服务器配置变更（兼容 DefaultClusterTokenClient） 2. 多服务器配置变更（多服务器模式）
+   * <p>
+   * 用户无需手动配置，系统自动处理
+   */
+  private void registerConfigListeners() {
+
+    // 监听器 多服务器配置变更（多服务器模式）
+    ClusterClientMultiServerConfigManager.addConfigChangeObserver(
+        new ClusterClientMultiServerConfigManager.MultiServerConfigChangeObserver() {
+          @Override
+          public void onMultiServerConfigChange(ClusterClientMultiServerConfig newConfig) {
+            handleMultiServerChange(newConfig);
+          }
+        });
+
+    RecordLog.info("[MultiServerClusterTokenClient] Dynamic config listeners registered, "
+        + "supporting both single-server and multi-server configurations");
+  }
+
+  /**
+   * 处理单服务器配置变更（兼容 DefaultClusterTokenClient 的 changeServer 方法）
+   * <p>
+   * 当用户使用 DefaultClusterTokenClient 的配置方式时， 自动将单服务器配置转换为多服务器配置
+   *
+   * @param assignConfig 单服务器分配配置
+   */
+  private void handleSingleServerChange(ClusterClientAssignConfig assignConfig) {
+    if (assignConfig == null) {
+      RecordLog.warn("[MultiServerClusterTokenClient] Empty assign config, ignoring");
+      return;
+    }
+
+    String newHost = assignConfig.getServerHost();
+    int newPort = assignConfig.getServerPort();
+
+    if (StringUtil.isBlank(newHost) || newPort <= 0) {
+      RecordLog.warn("[MultiServerClusterTokenClient] Invalid server config: {}:{}", newHost,
+          newPort);
+      return;
+    }
+
+    // 检查是否与当前配置相同
+    if (isSameAsSingleServer(newHost, newPort)) {
+      RecordLog.info("[MultiServerClusterTokenClient] Server config unchanged: {}:{}", newHost,
+          newPort);
+      return;
+    }
+
+    RecordLog.info("[MultiServerClusterTokenClient] Single server config changed to: {}:{}",
+        newHost, newPort);
+
+    // 将单服务器配置转换为多服务器配置
+    ClusterClientMultiServerConfig newConfig = new ClusterClientMultiServerConfig()
+        .addServerNode(newHost, newPort)
+        .setLoadBalanceStrategy(config.getLoadBalanceStrategy())
+        .setEnableFailover(config.isEnableFailover())
+        .setMaxRetries(config.getMaxRetries())
+        .setHealthCheckInterval(config.getHealthCheckInterval());
+
+    // 应用新配置
+    updateConfig(newConfig);
+  }
+
+  /**
+   * 处理多服务器配置变更（多服务器配置模式）
+   * <p>
+   * 支持完整的多服务器配置动态更新，包括： - 多个服务器节点 - 负载均衡策略 - 故障转移配置 - 健康检查配置
+   *
+   * @param newConfig 新的多服务器配置
+   */
+  private void handleMultiServerChange(ClusterClientMultiServerConfig newConfig) {
+    if (newConfig == null) {
+      RecordLog.warn("[MultiServerClusterTokenClient] Empty multi-server config, ignoring");
+      return;
+    }
+
+    if (!ClusterClientMultiServerConfigManager.isValidConfig(newConfig)) {
+      RecordLog.warn("[MultiServerClusterTokenClient] Invalid multi-server config, ignoring: {}",
+          newConfig);
+      return;
+    }
+
+    RecordLog.info("[MultiServerClusterTokenClient] Multi-server config changed, "
+        + "new config has {} servers", newConfig.getServerNodes().size());
+
+    // 如果是首次配置（从空配置变为有配置）
+    boolean isFirstConfig = config.getServerNodes().isEmpty();
+
+    // 应用新的多服务器配置
+    updateConfig(newConfig);
+
+    // 如果是首次配置且客户端应该启动，则启动健康检查
+    if (isFirstConfig && shouldStart.get()) {
+      startHealthCheck();
+      RecordLog.info("[MultiServerClusterTokenClient] First config received, health check started");
+    }
+  }
+
+  /**
+   * 检查是否与当前的单服务器配置相同
+   */
+  private boolean isSameAsSingleServer(String host, int port) {
+    if (config.getServerNodes().size() != 1) {
+      return false;
+    }
+    ServerNode currentNode = config.getServerNodes().get(0);
+    return currentNode.getHost().equals(host) && currentNode.getPort() == port;
   }
 
   /**
@@ -137,7 +289,16 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
    * 启动健康检查
    */
   private void startHealthCheck() {
-    if (config.getHealthCheckInterval() > 0) {
+    if (config == null || config.getHealthCheckInterval() <= 0) {
+      return;
+    }
+
+    // 检查是否已经启动过健康检查
+    if (healthCheckExecutor.isShutdown() || healthCheckExecutor.isTerminated()) {
+      return;
+    }
+
+    try {
       healthCheckExecutor.scheduleAtFixedRate(() -> {
         try {
           performHealthCheck();
@@ -148,6 +309,8 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
 
       RecordLog.info("[MultiServerClusterTokenClient] Health check started with interval: {} ms",
           config.getHealthCheckInterval());
+    } catch (Exception ex) {
+      RecordLog.warn("[MultiServerClusterTokenClient] Failed to start health check", ex);
     }
   }
 
@@ -261,9 +424,6 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
     if (ruleId != null) {
       if (loadBalanceStrategy instanceof com.alibaba.csp.sentinel.cluster.client.loadbalance.ConsistentHashLoadBalanceStrategy) {
         return ((com.alibaba.csp.sentinel.cluster.client.loadbalance.ConsistentHashLoadBalanceStrategy) loadBalanceStrategy)
-            .selectByRuleId(enabledNodes, ruleId);
-      } else if (loadBalanceStrategy instanceof com.alibaba.csp.sentinel.cluster.client.loadbalance.RuleIdHashLoadBalanceStrategy) {
-        return ((com.alibaba.csp.sentinel.cluster.client.loadbalance.RuleIdHashLoadBalanceStrategy) loadBalanceStrategy)
             .selectByRuleId(enabledNodes, ruleId);
       }
     }
@@ -448,6 +608,14 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
   @Override
   public void start() throws Exception {
     if (shouldStart.compareAndSet(false, true)) {
+      // 如果没有服务器节点，只标记为启动状态，等待配置推送
+      if (transportClientMap.isEmpty()) {
+        RecordLog.info("[MultiServerClusterTokenClient] Client marked as started, "
+            + "waiting for server configuration");
+        return;
+      }
+
+      // 启动所有已配置的服务器连接
       for (Map.Entry<String, ClusterTransportClient> entry : transportClientMap.entrySet()) {
         try {
           entry.getValue().start();
@@ -459,6 +627,9 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
           serverHealthMap.put(entry.getKey(), false);
         }
       }
+
+      // 启动健康检查
+      startHealthCheck();
     }
   }
 
@@ -527,7 +698,16 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
   }
 
   /**
-   * 更新配置
+   * 更新配置（参考 DefaultClusterTokenClient 的 changeServer 方法）
+   *
+   * 支持以下场景：
+   * 1. 添加新服务器节点
+   * 2. 移除旧服务器节点
+   * 3. 修改服务器配置（权重、启用状态等）
+   * 4. 切换负载均衡策略
+   * 5. 从空配置到有配置（首次配置）
+   *
+   * @param newConfig 新的配置
    */
   public synchronized void updateConfig(ClusterClientMultiServerConfig newConfig) {
     if (newConfig == null || newConfig.getServerNodes() == null || newConfig.getServerNodes()
@@ -536,17 +716,32 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
       return;
     }
 
-    RecordLog.info("[MultiServerClusterTokenClient] Updating config: {}", newConfig);
+    boolean isFirstConfig = (config == null || config.getServerNodes().isEmpty());
+
+    RecordLog.info("[MultiServerClusterTokenClient] Updating config, isFirstConfig: {}, "
+            + "old servers: {}, new servers: {}",
+        isFirstConfig,
+        config != null ? config.getServerNodes().size() : 0,
+        newConfig.getServerNodes().size());
 
     // 更新负载均衡策略
-    if (!newConfig.getLoadBalanceStrategy().equals(config.getLoadBalanceStrategy())) {
+    if (config != null && !newConfig.getLoadBalanceStrategy()
+        .equals(config.getLoadBalanceStrategy())) {
+      LoadBalanceStrategyType oldStrategy = config.getLoadBalanceStrategy();
       this.loadBalanceStrategy = LoadBalanceStrategyFactory.getStrategy(
           newConfig.getLoadBalanceStrategy());
+      RecordLog.info("[MultiServerClusterTokenClient] Load balance strategy changed: {} -> {}",
+          oldStrategy, newConfig.getLoadBalanceStrategy());
+
+      // 重置负载均衡器状态
+      if (this.loadBalanceStrategy != null) {
+        this.loadBalanceStrategy.reset();
+      }
     }
 
     this.config = newConfig;
 
-    // 重新初始化连接
+    // 构建新服务器节点集合
     Set<String> newServerKeys = new HashSet<>();
     for (ServerNode node : newConfig.getServerNodes()) {
       if (node.isEnabled()) {
@@ -554,52 +749,82 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
       }
     }
 
-    // 移除不再存在的服务器连接
+    // 移除不再存在的服务器连接（参考 DefaultClusterTokenClient 的 stop 逻辑）
     Set<String> existingKeys = new HashSet<>(transportClientMap.keySet());
     for (String key : existingKeys) {
       if (!newServerKeys.contains(key)) {
-        ClusterTransportClient client = transportClientMap.remove(key);
-        if (client != null) {
-          try {
-            client.stop();
-          } catch (Exception e) {
-            RecordLog.warn("[MultiServerClusterTokenClient] Error stopping client: " + key, e);
-          }
-        }
-        serverDescriptorMap.remove(key);
-        serverHealthMap.remove(key);
-        serverFailureCountMap.remove(key);
-        RecordLog.info("[MultiServerClusterTokenClient] Removed server: {}", key);
+        removeServer(key);
       }
     }
 
-    // 添加新的服务器连接
+    // 添加新的服务器连接（参考 DefaultClusterTokenClient 的 start 逻辑）
     for (ServerNode node : newConfig.getServerNodes()) {
       if (node.isEnabled()) {
         String key = getServerKey(node.getHost(), node.getPort());
         if (!transportClientMap.containsKey(key)) {
-          try {
-            ClusterTransportClient client = new NettyTransportClient(node.getHost(),
-                node.getPort());
-            if (shouldStart.get()) {
-              client.start();
-            }
-            transportClientMap.put(key, client);
-
-            TokenServerDescriptor descriptor = new TokenServerDescriptor(node.getHost(),
-                node.getPort());
-            serverDescriptorMap.put(key, descriptor);
-
-            serverHealthMap.put(key, true);
-            serverFailureCountMap.put(key, 0);
-
-            RecordLog.info("[MultiServerClusterTokenClient] Added new server: {}", key);
-          } catch (Exception ex) {
-            RecordLog.warn("[MultiServerClusterTokenClient] Failed to add server: " + key, ex);
-          }
+          addServer(node);
         }
       }
     }
+
+    RecordLog.info("[MultiServerClusterTokenClient] Config update completed, "
+            + "total servers: {}, healthy servers: {}",
+        transportClientMap.size(), getHealthyServers().size());
+  }
+
+  /**
+   * 添加服务器（参考 DefaultClusterTokenClient 的初始化逻辑）
+   */
+  private void addServer(ServerNode node) {
+    String key = getServerKey(node.getHost(), node.getPort());
+    try {
+      ClusterTransportClient client = new NettyTransportClient(node.getHost(), node.getPort());
+
+      // 如果客户端已启动，自动启动新连接
+      if (shouldStart.get()) {
+        client.start();
+        RecordLog.info("[MultiServerClusterTokenClient] Started new server connection: {}", key);
+      }
+
+      transportClientMap.put(key, client);
+
+      TokenServerDescriptor descriptor = new TokenServerDescriptor(node.getHost(), node.getPort());
+      serverDescriptorMap.put(key, descriptor);
+
+      serverHealthMap.put(key, true);
+      serverFailureCountMap.put(key, 0);
+
+      RecordLog.info("[MultiServerClusterTokenClient] Added new server: {} (weight: {})",
+          key, node.getWeight());
+    } catch (Exception ex) {
+      RecordLog.warn("[MultiServerClusterTokenClient] Failed to add server: " + key, ex);
+      serverHealthMap.put(key, false);
+    }
+  }
+
+  /**
+   * 移除服务器（参考 DefaultClusterTokenClient 的 stop 逻辑）
+   */
+  private void removeServer(String serverKey) {
+    ClusterTransportClient client = transportClientMap.remove(serverKey);
+    if (client != null) {
+      try {
+        client.stop();
+        RecordLog.info("[MultiServerClusterTokenClient] Stopped and removed server: {}", serverKey);
+      } catch (Exception e) {
+        RecordLog.warn("[MultiServerClusterTokenClient] Error stopping client: " + serverKey, e);
+      }
+    }
+    serverDescriptorMap.remove(serverKey);
+    serverHealthMap.remove(serverKey);
+    serverFailureCountMap.remove(serverKey);
+  }
+
+  /**
+   * 获取当前配置
+   */
+  public ClusterClientMultiServerConfig getCurrentConfig() {
+    return config;
   }
 }
 
