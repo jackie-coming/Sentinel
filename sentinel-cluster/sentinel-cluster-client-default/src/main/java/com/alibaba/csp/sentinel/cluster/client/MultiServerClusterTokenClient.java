@@ -43,8 +43,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -88,17 +89,31 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
   private LoadBalanceStrategy loadBalanceStrategy;
 
   private final AtomicBoolean shouldStart = new AtomicBoolean(false);
-  private final ScheduledExecutorService healthCheckExecutor =
-      Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread thread = new Thread(r, "sentinel-cluster-client-health-checker");
-        thread.setDaemon(true);
-        return thread;
-      });
+  private final ScheduledExecutorService healthCheckExecutor = createHealthCheckExecutor();
 
   /**
    * 最大连续失败次数，超过此次数将标记服务器为不健康
    */
   private static final int MAX_FAILURE_COUNT = 3;
+
+  /**
+   * 创建健康检查线程池
+   * <p>
+   * 手动创建单线程的 ScheduledThreadPoolExecutor，使用自定义 ThreadFactory 确保健康检查线程是守护线程，不会阻止 JVM 退出
+   *
+   * @return 健康检查线程池
+   */
+  private static ScheduledExecutorService createHealthCheckExecutor() {
+    ThreadFactory threadFactory = new ThreadFactory() {
+      @Override
+      public Thread newThread(Runnable r) {
+        Thread thread = new Thread(r, "sentinel-cluster-client-health-checker");
+        thread.setDaemon(true);
+        return thread;
+      }
+    };
+    return new ScheduledThreadPoolExecutor(1, threadFactory);
+  }
 
   /**
    * 构造函数 - 使用指定配置（默认启用动态配置）
