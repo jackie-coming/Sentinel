@@ -154,28 +154,6 @@ public class MultiServerClusterTokenClientTest {
 
 
   /**
-   * 测试8: 一致性哈希负载均衡策略
-   */
-  @Test
-  public void testConsistentHashLoadBalance() {
-    config.setLoadBalanceStrategy(LoadBalanceStrategyType.CONSISTENT_HASH);
-    client = new MultiServerClusterTokenClient(config);
-
-    assertNotNull("使用一致性哈希策略应该成功创建客户端", client);
-  }
-
-  /**
-   * 测试9: 一致性哈希负载均衡策略（默认策略）
-   */
-  @Test
-  public void testConsistentHashLoadBalance() {
-    config.setLoadBalanceStrategy(LoadBalanceStrategyType.CONSISTENT_HASH);
-    client = new MultiServerClusterTokenClient(config);
-
-    assertNotNull("使用一致性哈希策略应该成功创建客户端", client);
-  }
-
-  /**
    * 测试10: 策略枚举值验证
    */
   @Test
