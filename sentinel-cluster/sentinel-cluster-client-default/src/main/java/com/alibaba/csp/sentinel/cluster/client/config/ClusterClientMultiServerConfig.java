@@ -47,7 +47,7 @@ public class ClusterClientMultiServerConfig {
   /**
    * 是否启用自动故障转移
    */
-  private boolean enableFailover = true;
+  private boolean enableFailover = false;
 
   public static class ServerNode {
 

@@ -130,7 +130,7 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
         config.getLoadBalanceStrategy());
 
     initConnections();
-    startHealthCheck();
+//    startHealthCheck();
 
     // 默认启用动态配置，自动注册监听器（参考 DefaultClusterTokenClient）
     registerConfigListeners();
@@ -253,10 +253,10 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
     updateConfig(newConfig);
 
     // 如果是首次配置且客户端应该启动，则启动健康检查
-    if (isFirstConfig && shouldStart.get()) {
-      startHealthCheck();
-      RecordLog.info("[MultiServerClusterTokenClient] First config received, health check started");
-    }
+//    if (isFirstConfig && shouldStart.get()) {
+////      startHealthCheck();
+//      RecordLog.info("[MultiServerClusterTokenClient] First config received, health check started");
+//    }
   }
 
   /**
@@ -644,7 +644,7 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
       }
 
       // 启动健康检查
-      startHealthCheck();
+//      startHealthCheck();
     }
   }
 
