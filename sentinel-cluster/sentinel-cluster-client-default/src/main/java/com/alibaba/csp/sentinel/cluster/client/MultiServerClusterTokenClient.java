@@ -522,6 +522,7 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
    * @return Token结果
    */
   private TokenResult sendRequestWithRetry(ClusterRequest<?> request, Long ruleId) {
+    //默认false
     int maxRetries = config.isEnableFailover() ? config.getMaxRetries() : 0;
     Set<String> triedServers = new HashSet<>();
 
