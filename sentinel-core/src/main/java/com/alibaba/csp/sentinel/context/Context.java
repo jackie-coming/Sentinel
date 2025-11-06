@@ -22,6 +22,9 @@ import com.alibaba.csp.sentinel.node.DefaultNode;
 import com.alibaba.csp.sentinel.node.EntranceNode;
 import com.alibaba.csp.sentinel.node.Node;
 import com.alibaba.csp.sentinel.slots.nodeselector.NodeSelectorSlot;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * This class holds metadata of current invocation:<br/>
@@ -77,6 +80,14 @@ public class Context {
     private String origin = "";
 
     private final boolean async;
+
+    /**
+     * Cluster flow control metadata (e.g., routed server, rule id, response time, etc.). This field
+     * stores metadata from cluster token requests.
+     *
+     * @since 1.8.x
+     */
+    private Map<String, String> clusterMetadata;
 
     /**
      * Create a new async context.
@@ -188,6 +199,38 @@ public class Context {
         return curEntry == null ? null : curEntry.getOriginNode();
     }
 
+    /**
+     * Get cluster flow control metadata from this context.
+     *
+     * @return unmodifiable map of cluster metadata, or empty map if no metadata is set
+     * @since 1.8.x
+     */
+    public Map<String, String> getClusterMetadata() {
+        if (clusterMetadata == null) {
+            return Collections.emptyMap();
+        }
+        return Collections.unmodifiableMap(clusterMetadata);
+    }
+
+    /**
+     * Set cluster flow control metadata to this context.
+     *
+     * @param metadata the metadata map to set
+     * @since 1.8.x
+     */
+    public void setClusterMetadata(Map<String, String> metadata) {
+        if (metadata == null || metadata.isEmpty()) {
+            this.clusterMetadata = null;
+            return;
+        }
+        if (this.clusterMetadata == null) {
+            this.clusterMetadata = new HashMap<>();
+        } else {
+            this.clusterMetadata.clear();
+        }
+        this.clusterMetadata.putAll(metadata);
+    }
+
     @Override
     public String toString() {
         return "Context{" +
@@ -196,6 +239,8 @@ public class Context {
             ", curEntry=" + curEntry +
             ", origin='" + origin + '\'' +
             ", async=" + async +
+            ", clusterMetadata=" + (clusterMetadata != null ? clusterMetadata.size() + " items"
+            : "null") +
             '}';
     }
 }

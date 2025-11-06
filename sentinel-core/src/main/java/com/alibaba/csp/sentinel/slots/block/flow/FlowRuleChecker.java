@@ -15,14 +15,12 @@
  */
 package com.alibaba.csp.sentinel.slots.block.flow;
 
-import java.util.Collection;
-
 import com.alibaba.csp.sentinel.cluster.ClusterStateManager;
-import com.alibaba.csp.sentinel.cluster.server.EmbeddedClusterTokenServerProvider;
-import com.alibaba.csp.sentinel.cluster.client.TokenClientProvider;
-import com.alibaba.csp.sentinel.cluster.TokenResultStatus;
 import com.alibaba.csp.sentinel.cluster.TokenResult;
+import com.alibaba.csp.sentinel.cluster.TokenResultStatus;
 import com.alibaba.csp.sentinel.cluster.TokenService;
+import com.alibaba.csp.sentinel.cluster.client.TokenClientProvider;
+import com.alibaba.csp.sentinel.cluster.server.EmbeddedClusterTokenServerProvider;
 import com.alibaba.csp.sentinel.context.Context;
 import com.alibaba.csp.sentinel.log.RecordLog;
 import com.alibaba.csp.sentinel.node.DefaultNode;
@@ -33,6 +31,7 @@ import com.alibaba.csp.sentinel.slots.block.RuleConstant;
 import com.alibaba.csp.sentinel.slots.clusterbuilder.ClusterBuilderSlot;
 import com.alibaba.csp.sentinel.util.StringUtil;
 import com.alibaba.csp.sentinel.util.function.Function;
+import java.util.Collection;
 
 /**
  * Rule checker for flow control rules.
@@ -186,6 +185,12 @@ public class FlowRuleChecker {
     private static boolean applyTokenResult(/*@NonNull*/ TokenResult result, FlowRule rule, Context context,
                                                          DefaultNode node,
                                                          int acquireCount, boolean prioritized) {
+        // Save cluster metadata to context if available
+        if (context != null && result.getAttachments() != null && !result.getAttachments()
+            .isEmpty()) {
+            context.setClusterMetadata(result.getAttachments());
+        }
+
         switch (result.getStatus()) {
             case TokenResultStatus.OK:
                 return true;

@@ -17,6 +17,7 @@ package com.alibaba.csp.sentinel.cluster.client;
 
 import com.alibaba.csp.sentinel.cluster.ClusterConstants;
 import com.alibaba.csp.sentinel.cluster.ClusterErrorMessages;
+import com.alibaba.csp.sentinel.cluster.ClusterMetadataKeys;
 import com.alibaba.csp.sentinel.cluster.ClusterTransportClient;
 import com.alibaba.csp.sentinel.cluster.TokenResult;
 import com.alibaba.csp.sentinel.cluster.TokenResultStatus;
@@ -38,6 +39,7 @@ import com.alibaba.csp.sentinel.log.RecordLog;
 import com.alibaba.csp.sentinel.util.StringUtil;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -59,9 +61,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 4. 支持健康检查
  * 5. 支持动态配置更新（兼容 DefaultClusterTokenClient）
  * 6. 支持单服务器到多服务器的平滑切换
+ * 7. 自动记录并透传实际路由的 Token Server 地址
+ *
+ * <p>路由信息透传示例：</p>
+ * <pre>{@code
+ * // 方式1：通过 TokenClient API 获取
+ * TokenResult result = clusterClient.requestToken(ruleId, 1, false);
+ * String server = TokenResultHelper.getRoutedServer(result);
+ * long rt = TokenResultHelper.getResponseTime(result);
+ * System.out.println("Routed to: " + server + ", RT: " + rt + "ms");
+ *
+ * // 方式2：如果使用 SphU.entry (框架内部会调用)
+ * // 元数据信息已经存储在 TokenResult 中
+ * }</pre>
  *
  * @author Modified for multi-server support
  * @since 1.4.0
+ * @see TokenResultHelper
  */
 public class MultiServerClusterTokenClient implements ClusterTokenClient {
 
@@ -97,6 +113,11 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
   private static final int MAX_FAILURE_COUNT = 3;
 
   /**
+   * TokenResult attachments 中存储实际路由服务器地址的 key
+   */
+  public static final String ROUTED_SERVER_KEY = "routed_server";
+
+  /**
    * 创建健康检查线程池
    * <p>
    * 手动创建单线程的 ScheduledThreadPoolExecutor，使用自定义 ThreadFactory 确保健康检查线程是守护线程，不会阻止 JVM 退出
@@ -130,7 +151,7 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
         config.getLoadBalanceStrategy());
 
     initConnections();
-//    startHealthCheck();
+    startHealthCheck();
 
     // 默认启用动态配置，自动注册监听器（参考 DefaultClusterTokenClient）
     registerConfigListeners();
@@ -253,10 +274,10 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
     updateConfig(newConfig);
 
     // 如果是首次配置且客户端应该启动，则启动健康检查
-//    if (isFirstConfig && shouldStart.get()) {
-////      startHealthCheck();
-//      RecordLog.info("[MultiServerClusterTokenClient] First config received, health check started");
-//    }
+    if (isFirstConfig && shouldStart.get()) {
+      startHealthCheck();
+      RecordLog.info("[MultiServerClusterTokenClient] First config received, health check started");
+    }
   }
 
   /**
@@ -526,13 +547,35 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
     int maxRetries = config.isEnableFailover() ? config.getMaxRetries() : 0;
     Set<String> triedServers = new HashSet<>();
 
+    // 记录请求开始时间
+    long requestStartTime = System.currentTimeMillis();
+    int actualRetryCount = 0;
+    Exception lastException = null;
+
     for (int attempt = 0; attempt <= maxRetries; attempt++) {
       // 根据规则ID选择服务器，确保同一规则路由到同一服务器
       ServerNode selectedNode = selectHealthyServer(ruleId);
 
       if (selectedNode == null) {
         ClusterClientStatLogUtil.log("No healthy server available");
-        return clientFail();
+
+        // 记录失败信息到 attachments
+        long costTime = System.currentTimeMillis() - requestStartTime;
+        TokenResult failResult = new TokenResult(TokenResultStatus.FAIL);
+
+        Map<String, String> attachments = new HashMap<>();
+        if (ruleId != null) {
+          attachments.put(ClusterMetadataKeys.KEY_RULE_ID, String.valueOf(ruleId));
+        }
+        attachments.put(ClusterMetadataKeys.KEY_TOTAL_TIME, String.valueOf(costTime));
+        attachments.put(ClusterMetadataKeys.KEY_RETRY_COUNT, String.valueOf(actualRetryCount));
+        attachments.put(ClusterMetadataKeys.KEY_REQUEST_TIMESTAMP,
+            String.valueOf(requestStartTime));
+        attachments.put(ClusterMetadataKeys.KEY_REQUEST_STATUS, "failure");
+        attachments.put(ClusterMetadataKeys.KEY_EXCEPTION_MESSAGE, "No healthy server available");
+        failResult.setAttachments(attachments);
+
+        return failResult;
       }
 
       String serverKey = getServerKey(selectedNode.getHost(), selectedNode.getPort());
@@ -550,8 +593,12 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
           RecordLog.warn("[MultiServerClusterTokenClient] Client not ready for server: {}",
               serverKey);
           markServerFailure(serverKey);
+          actualRetryCount++;
           continue;
         }
+
+        // 记录单次请求开始时间
+        long singleRequestStartTime = System.currentTimeMillis();
 
         ClusterResponse response = client.sendRequest(request);
         TokenResult result = new TokenResult(response.getStatus());
@@ -562,13 +609,43 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
               .setWaitInMs(responseData.getWaitInMs());
         }
 
+        // 计算请求耗时
+        long costTime = System.currentTimeMillis() - requestStartTime;
+        long singleRequestCostTime = System.currentTimeMillis() - singleRequestStartTime;
+
+        // 将完整的元数据存储到 attachments 中，方便用户追踪
+        Map<String, String> attachments = new HashMap<>();
+        // 服务器信息
+        attachments.put(ClusterMetadataKeys.KEY_ROUTED_SERVER, serverKey);
+        // 规则信息
+        if (ruleId != null) {
+          attachments.put(ClusterMetadataKeys.KEY_RULE_ID, String.valueOf(ruleId));
+        }
+        // 性能信息
+        attachments.put(ClusterMetadataKeys.KEY_RESPONSE_TIME,
+            String.valueOf(singleRequestCostTime));
+        attachments.put(ClusterMetadataKeys.KEY_TOTAL_TIME, String.valueOf(costTime));
+        attachments.put(ClusterMetadataKeys.KEY_RETRY_COUNT, String.valueOf(actualRetryCount));
+        attachments.put(ClusterMetadataKeys.KEY_REQUEST_TIMESTAMP,
+            String.valueOf(requestStartTime));
+        // 状态信息
+        attachments.put(ClusterMetadataKeys.KEY_REQUEST_STATUS, "success");
+        result.setAttachments(attachments);
+
         // 请求成功，标记服务器为健康
         markServerSuccess(serverKey);
         logForResult(result);
 
+        RecordLog.debug(
+            "[MultiServerClusterTokenClient] Request routed to server: {}, cost: {}ms, retries: {}",
+            serverKey, costTime, actualRetryCount);
+
         return result;
 
       } catch (Exception ex) {
+        actualRetryCount++;
+        lastException = ex;
+
         RecordLog.warn("[MultiServerClusterTokenClient] Request failed on server: " + serverKey
             + ", attempt: " + (attempt + 1), ex);
         markServerFailure(serverKey);
@@ -576,14 +653,63 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
         // 如果是最后一次尝试，记录错误并返回失败
         if (attempt == maxRetries) {
           ClusterClientStatLogUtil.log(ex.getMessage());
-          return new TokenResult(TokenResultStatus.FAIL);
+
+          // 记录失败信息到 attachments
+          long costTime = System.currentTimeMillis() - requestStartTime;
+          TokenResult failResult = new TokenResult(TokenResultStatus.FAIL);
+
+          Map<String, String> attachments = new HashMap<>();
+          // 服务器信息
+          attachments.put(ClusterMetadataKeys.KEY_ROUTED_SERVER, serverKey);
+          // 规则信息
+          if (ruleId != null) {
+            attachments.put(ClusterMetadataKeys.KEY_RULE_ID, String.valueOf(ruleId));
+          }
+          // 性能信息
+          attachments.put(ClusterMetadataKeys.KEY_TOTAL_TIME, String.valueOf(costTime));
+          attachments.put(ClusterMetadataKeys.KEY_RETRY_COUNT, String.valueOf(actualRetryCount));
+          attachments.put(ClusterMetadataKeys.KEY_REQUEST_TIMESTAMP,
+              String.valueOf(requestStartTime));
+          // 状态和异常信息
+          attachments.put(ClusterMetadataKeys.KEY_REQUEST_STATUS, "failure");
+          attachments.put(ClusterMetadataKeys.KEY_EXCEPTION_TYPE, ex.getClass().getName());
+          if (ex.getMessage() != null) {
+            attachments.put(ClusterMetadataKeys.KEY_EXCEPTION_MESSAGE, ex.getMessage());
+          }
+          failResult.setAttachments(attachments);
+
+          RecordLog.warn(
+              "[MultiServerClusterTokenClient] All retries exhausted, total cost: {}ms, retries: {}",
+              costTime, actualRetryCount);
+
+          return failResult;
         }
 
         // 否则，继续尝试其他服务器
       }
     }
 
-    return new TokenResult(TokenResultStatus.FAIL);
+    // 记录失败信息到 attachments
+    long costTime = System.currentTimeMillis() - requestStartTime;
+    TokenResult failResult = new TokenResult(TokenResultStatus.FAIL);
+
+    Map<String, String> attachments = new HashMap<>();
+    if (ruleId != null) {
+      attachments.put(ClusterMetadataKeys.KEY_RULE_ID, String.valueOf(ruleId));
+    }
+    attachments.put(ClusterMetadataKeys.KEY_TOTAL_TIME, String.valueOf(costTime));
+    attachments.put(ClusterMetadataKeys.KEY_RETRY_COUNT, String.valueOf(actualRetryCount));
+    attachments.put(ClusterMetadataKeys.KEY_REQUEST_TIMESTAMP, String.valueOf(requestStartTime));
+    attachments.put(ClusterMetadataKeys.KEY_REQUEST_STATUS, "failure");
+    if (lastException != null) {
+      attachments.put(ClusterMetadataKeys.KEY_EXCEPTION_TYPE, lastException.getClass().getName());
+      if (lastException.getMessage() != null) {
+        attachments.put(ClusterMetadataKeys.KEY_EXCEPTION_MESSAGE, lastException.getMessage());
+      }
+    }
+    failResult.setAttachments(attachments);
+
+    return failResult;
   }
 
   @Override
@@ -645,7 +771,7 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
       }
 
       // 启动健康检查
-//      startHealthCheck();
+      startHealthCheck();
     }
   }
 
