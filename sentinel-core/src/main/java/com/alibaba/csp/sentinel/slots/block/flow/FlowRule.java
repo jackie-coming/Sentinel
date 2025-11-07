@@ -17,6 +17,7 @@ package com.alibaba.csp.sentinel.slots.block.flow;
 
 import com.alibaba.csp.sentinel.slots.block.AbstractRule;
 import com.alibaba.csp.sentinel.slots.block.RuleConstant;
+import java.util.Map;
 
 /**
  * <p>
@@ -93,6 +94,20 @@ public class FlowRule extends AbstractRule {
      * The traffic shaping (throttling) controller.
      */
     private TrafficShapingController controller;
+
+    /**
+     * 透传字段
+     */
+    private Map<String, Object> extra;
+
+    public FlowRule setExtra(Map<String, Object> extra) {
+        this.extra = extra;
+        return this;
+    }
+
+    public Map<String, Object> getExtra() {
+        return extra;
+    }
 
     public int getControlBehavior() {
         return controlBehavior;
