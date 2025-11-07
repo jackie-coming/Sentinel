@@ -384,14 +384,16 @@
                 </plugins>
             </build>
             <distributionManagement>
-                <snapshotRepository>
-                    <id>oss</id>
-                    <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-                </snapshotRepository>
                 <repository>
-                    <id>oss</id>
-                    <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+                    <id>hellobike-releases</id>
+                    <name>Hellobike Releases</name>
+                    <url>https://maven.hellobike.cn/nexus/content/repositories/releases/</url>
                 </repository>
+                <snapshotRepository>
+                    <id>hellobike-snapshots</id>
+                    <name>Hellobike Snapshots</name>
+                    <url>https://maven.hellobike.cn/nexus/content/repositories/snapshots/</url>
+                </snapshotRepository>
             </distributionManagement>
         </profile>
     </profiles>
