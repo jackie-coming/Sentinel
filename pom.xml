@@ -385,14 +385,14 @@
             </build>
             <distributionManagement>
                 <repository>
-                    <id>hellobike-releases</id>
-                    <name>Hellobike Releases</name>
-                    <url>https://maven.hellobike.cn/nexus/content/repositories/releases/</url>
+                    <id>carkey-pub</id>
+                    <name>Hellobike Release Repository</name>
+                    <url>https://maven.hellobike.cn/nexus/content/repositories/releases</url>
                 </repository>
                 <snapshotRepository>
-                    <id>hellobike-snapshots</id>
-                    <name>Hellobike Snapshots</name>
-                    <url>https://maven.hellobike.cn/nexus/content/repositories/snapshots/</url>
+                    <id>carkey-pub</id>
+                    <name>Hellobike Snapshot Repository</name>
+                    <url>https://maven.hellobike.cn/nexus/content/repositories/snapshots</url>
                 </snapshotRepository>
             </distributionManagement>
         </profile>
