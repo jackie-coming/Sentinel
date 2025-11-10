@@ -5,8 +5,8 @@
 
     <parent>
         <artifactId>sentinel-demo</artifactId>
-        <groupId>com.alibaba.csp</groupId>
-        <version>1.8.6.map.3.SNAPSHOT</version>
+        <groupId>com.hellobikemap.csp</groupId>
+        <version>1.8.6.map.4.SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -50,40 +50,40 @@
         </dependency>
 
         <dependency>
-            <groupId>com.alibaba.csp</groupId>
+            <groupId>com.hellobikemap.csp</groupId>
             <artifactId>sentinel-core</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>com.alibaba.csp</groupId>
+            <groupId>com.hellobikemap.csp</groupId>
             <artifactId>sentinel-logging-slf4j</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>com.alibaba.csp</groupId>
+            <groupId>com.hellobikemap.csp</groupId>
             <artifactId>sentinel-transport-simple-http</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>com.alibaba.csp</groupId>
+            <groupId>com.hellobikemap.csp</groupId>
             <artifactId>sentinel-parameter-flow-control</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>com.alibaba.csp</groupId>
+            <groupId>com.hellobikemap.csp</groupId>
             <artifactId>sentinel-jax-rs-quarkus-adapter</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>com.alibaba.csp</groupId>
+            <groupId>com.hellobikemap.csp</groupId>
             <artifactId>sentinel-annotation-quarkus-adapter</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>com.alibaba.csp</groupId>
+            <groupId>com.hellobikemap.csp</groupId>
             <artifactId>sentinel-native-image-quarkus-adapter</artifactId>
             <version>${project.version}</version>
         </dependency>

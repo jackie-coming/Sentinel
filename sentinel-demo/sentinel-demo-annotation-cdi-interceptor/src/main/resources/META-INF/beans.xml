@@ -4,6 +4,7 @@
        xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/beans_1_1.xsd"
        bean-discovery-mode="all">
     <interceptors>
-        <class>com.alibaba.csp.sentinel.annotation.cdi.interceptor.SentinelResourceInterceptor</class>
+      <class>com.hellobikemap.csp.sentinel.annotation.cdi.interceptor.SentinelResourceInterceptor
+      </class>
     </interceptors>
 </beans>

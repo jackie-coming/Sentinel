@@ -4,9 +4,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.alibaba.csp</groupId>
+      <groupId>com.hellobikemap.csp</groupId>
         <artifactId>sentinel-extension</artifactId>
-        <version>1.8.6.map.3.SNAPSHOT</version>
+      <version>1.8.6.map.4.SNAPSHOT</version>
     </parent>
 
     <artifactId>sentinel-datasource-extension</artifactId>
@@ -14,7 +14,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.alibaba.csp</groupId>
+          <groupId>com.hellobikemap.csp</groupId>
             <artifactId>sentinel-core</artifactId>
         </dependency>
 

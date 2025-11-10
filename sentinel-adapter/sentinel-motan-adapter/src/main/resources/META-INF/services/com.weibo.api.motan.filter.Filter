@@ -1,2 +1,2 @@
-com.alibaba.csp.sentinel.adapter.motan.SentinelMotanProviderFilter
-com.alibaba.csp.sentinel.adapter.motan.SentinelMotanConsumerFilter
+com.hellobikemap.csp.sentinel.adapter.motan.SentinelMotanProviderFilter
+com.hellobikemap.csp.sentinel.adapter.motan.SentinelMotanConsumerFilter

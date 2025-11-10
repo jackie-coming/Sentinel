@@ -4,8 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>sentinel-adapter</artifactId>
-        <groupId>com.alibaba.csp</groupId>
-        <version>1.8.6.map.3.SNAPSHOT</version>
+        <groupId>com.hellobikemap.csp</groupId>
+        <version>1.8.6.map.4.SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -17,7 +17,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.alibaba.csp</groupId>
+            <groupId>com.hellobikemap.csp</groupId>
             <artifactId>sentinel-core</artifactId>
         </dependency>
 

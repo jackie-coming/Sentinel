@@ -1,7 +1,7 @@
 # 🎉 Sentinel 项目构建成功报告
 
 **构建时间**: 2025-11-05 20:25:48  
-**构建版本**: 1.8.6.map.3.SNAPSHOT  
+**构建版本**: 1.8.6.map.4.SNAPSHOT  
 **构建状态**: ✅ **SUCCESS**
 
 ---
@@ -10,7 +10,7 @@
 
 ### 1. sentinel-core (v1.8.6.map.1)
 
-**JAR 位置**: `sentinel-core/target/sentinel-core-1.8.6.map.3.SNAPSHOT.jar`
+**JAR 位置**: `sentinel-core/target/sentinel-core-1.8.6.map.4.SNAPSHOT.jar`
 
 **新增类**:
 
@@ -27,7 +27,7 @@
 ### 2. sentinel-cluster-common-default (v1.8.6.map.1)
 
 **JAR 位置
-**: `sentinel-cluster/sentinel-cluster-common-default/target/sentinel-cluster-common-default-1.8.6.map.3.SNAPSHOT.jar`
+**: `sentinel-cluster/sentinel-cluster-common-default/target/sentinel-cluster-common-default-1.8.6.map.4.SNAPSHOT.jar`
 
 **状态**: ✅ 编译成功，无修改
 
@@ -36,7 +36,7 @@
 ### 3. sentinel-cluster-client-default (v1.8.6.map.1)
 
 **JAR 位置
-**: `sentinel-cluster/sentinel-cluster-client-default/target/sentinel-cluster-client-default-1.8.6.map.3.SNAPSHOT.jar`
+**: `sentinel-cluster/sentinel-cluster-client-default/target/sentinel-cluster-client-default-1.8.6.map.4.SNAPSHOT.jar`
 
 **新增类**:
 
@@ -116,7 +116,7 @@ mvn clean install \
 #### sentinel-core
 
 ```bash
-$ jar tf sentinel-core-1.8.6.map.3.SNAPSHOT.jar | grep ClusterMetadata
+$ jar tf sentinel-core-1.8.6.map.4.SNAPSHOT.jar | grep ClusterMetadata
 com/alibaba/csp/sentinel/cluster/ClusterMetadataKeys.class
 com/alibaba/csp/sentinel/ClusterMetadataHelper.class
 ```
@@ -124,7 +124,7 @@ com/alibaba/csp/sentinel/ClusterMetadataHelper.class
 #### sentinel-cluster-client-default
 
 ```bash
-$ jar tf sentinel-cluster-client-default-1.8.6.map.3.SNAPSHOT.jar | grep -E "TokenResult|MultiServer|ClusterClientMultiServer"
+$ jar tf sentinel-cluster-client-default-1.8.6.map.4.SNAPSHOT.jar | grep -E "TokenResult|MultiServer|ClusterClientMultiServer"
 com/alibaba/csp/sentinel/cluster/client/TokenResultHelper.class
 com/alibaba/csp/sentinel/cluster/client/MultiServerClusterTokenClient.class
 com/alibaba/csp/sentinel/cluster/client/MultiServerClusterTokenClient$1.class
@@ -210,4 +210,5 @@ Entry entry=SphU.entry("resource-key");
 ---
 
 **构建完成! 🎊**
+
 

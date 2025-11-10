@@ -4,9 +4,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.alibaba.csp</groupId>
+        <groupId>com.hellobikemap.csp</groupId>
         <artifactId>sentinel-quarkus-adapter-parent</artifactId>
-        <version>1.8.6.map.3.SNAPSHOT</version>
+        <version>1.8.6.map.4.SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -32,7 +32,7 @@
             <artifactId>svm</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.alibaba.csp</groupId>
+            <groupId>com.hellobikemap.csp</groupId>
             <artifactId>sentinel-native-image-quarkus-adapter</artifactId>
             <version>${project.version}</version>
         </dependency>

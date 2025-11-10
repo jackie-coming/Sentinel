@@ -53,11 +53,11 @@
 ### 主要 JAR
 
 ```
-✅ sentinel-core-1.8.6.map.3.SNAPSHOT.jar (309 KB)
-✅ sentinel-cluster-client-default-1.8.6.map.3.SNAPSHOT.jar (77 KB)
-✅ sentinel-cluster-common-default-1.8.6.map.3.SNAPSHOT.jar
-✅ sentinel-cluster-server-default-1.8.6.map.3.SNAPSHOT.jar
-✅ sentinel-cluster-server-envoy-rls-1.8.6.map.3.SNAPSHOT.jar
+✅ sentinel-core-1.8.6.map.4.SNAPSHOT.jar (309 KB)
+✅ sentinel-cluster-client-default-1.8.6.map.4.SNAPSHOT.jar (77 KB)
+✅ sentinel-cluster-common-default-1.8.6.map.4.SNAPSHOT.jar
+✅ sentinel-cluster-server-default-1.8.6.map.4.SNAPSHOT.jar
+✅ sentinel-cluster-server-envoy-rls-1.8.6.map.4.SNAPSHOT.jar
 ```
 
 ### 所有模块 JAR (87 个)
@@ -218,24 +218,24 @@ sentinel-cluster-client-default: 66 tests - ALL PASSED ✅
 
 - ✅ Maven 本地仓库已安装
 - ✅ JAR 文件可用于集成测试
-- ✅ 所有模块版本号一致 (1.8.6.map.3.SNAPSHOT)
+- ✅ 所有模块版本号一致 (1.8.6.map.4.SNAPSHOT)
 
 ## 📦 安装位置
 
 ### Maven 本地仓库
 
 ```
-~/.m2/repository/com/alibaba/csp/sentinel-core/1.8.6.map.3.SNAPSHOT/
-  ├── sentinel-core-1.8.6.map.3.SNAPSHOT.jar
-  ├── sentinel-core-1.8.6.map.3.SNAPSHOT.pom
-  ├── sentinel-core-1.8.6.map.3.SNAPSHOT-sources.jar
-  └── sentinel-core-1.8.6.map.3.SNAPSHOT-javadoc.jar
+~/.m2/repository/com/alibaba/csp/sentinel-core/1.8.6.map.4.SNAPSHOT/
+  ├── sentinel-core-1.8.6.map.4.SNAPSHOT.jar
+  ├── sentinel-core-1.8.6.map.4.SNAPSHOT.pom
+  ├── sentinel-core-1.8.6.map.4.SNAPSHOT-sources.jar
+  └── sentinel-core-1.8.6.map.4.SNAPSHOT-javadoc.jar
 
-~/.m2/repository/com/alibaba/csp/sentinel-cluster-client-default/1.8.6.map.3.SNAPSHOT/
-  ├── sentinel-cluster-client-default-1.8.6.map.3.SNAPSHOT.jar
-  ├── sentinel-cluster-client-default-1.8.6.map.3.SNAPSHOT.pom
-  ├── sentinel-cluster-client-default-1.8.6.map.3.SNAPSHOT-sources.jar
-  └── sentinel-cluster-client-default-1.8.6.map.3.SNAPSHOT-javadoc.jar
+~/.m2/repository/com/alibaba/csp/sentinel-cluster-client-default/1.8.6.map.4.SNAPSHOT/
+  ├── sentinel-cluster-client-default-1.8.6.map.4.SNAPSHOT.jar
+  ├── sentinel-cluster-client-default-1.8.6.map.4.SNAPSHOT.pom
+  ├── sentinel-cluster-client-default-1.8.6.map.4.SNAPSHOT-sources.jar
+  └── sentinel-cluster-client-default-1.8.6.map.4.SNAPSHOT-javadoc.jar
 ```
 
 ## 🎉 总结
@@ -279,6 +279,6 @@ sentinel-cluster-client-default: 66 tests - ALL PASSED ✅
 **构建时间**: 17:11:25  
 **构建耗时**: 62 秒  
 **构建状态**: ✅ **SUCCESS**  
-**项目版本**: 1.8.6.map.3.SNAPSHOT  
+**项目版本**: 1.8.6.map.4.SNAPSHOT  
 **Java 版本**: 8
 

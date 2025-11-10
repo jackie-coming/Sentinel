@@ -4,9 +4,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.alibaba.csp</groupId>
+      <groupId>com.hellobikemap.csp</groupId>
         <artifactId>sentinel-demo</artifactId>
-        <version>1.8.6.map.3.SNAPSHOT</version>
+      <version>1.8.6.map.4.SNAPSHOT</version>
     </parent>
     <artifactId>sentinel-demo-basic</artifactId>
 
