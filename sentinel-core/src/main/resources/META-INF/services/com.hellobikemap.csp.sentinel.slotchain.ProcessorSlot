@@ -1,0 +1,9 @@
+# Sentinel default ProcessorSlots
+com.hellobikemap.csp.sentinel.slots.nodeselector.NodeSelectorSlot
+com.hellobikemap.csp.sentinel.slots.clusterbuilder.ClusterBuilderSlot
+com.hellobikemap.csp.sentinel.slots.logger.LogSlot
+com.hellobikemap.csp.sentinel.slots.statistic.StatisticSlot
+com.hellobikemap.csp.sentinel.slots.block.authority.AuthoritySlot
+com.hellobikemap.csp.sentinel.slots.system.SystemSlot
+com.hellobikemap.csp.sentinel.slots.block.flow.FlowSlot
+com.hellobikemap.csp.sentinel.slots.block.degrade.DegradeSlot

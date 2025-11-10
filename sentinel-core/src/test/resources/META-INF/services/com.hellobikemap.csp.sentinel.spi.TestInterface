@@ -1,0 +1,5 @@
+# One
+com.hellobikemap.csp.sentinel.spi.TestOneProvider
+com.hellobikemap.csp.sentinel.spi.TestTwoProvider # Two
+com.hellobikemap.csp.sentinel.spi.TestThreeProvider
+com.hellobikemap.csp.sentinel.spi.TestFiveProvider

@@ -1,0 +1,2 @@
+com.hellobikemap.csp.sentinel.demo.log.logback.RecordLogLoggerImpl
+com.hellobikemap.csp.sentinel.demo.log.logback.CommandCenterLogLoggerImpl

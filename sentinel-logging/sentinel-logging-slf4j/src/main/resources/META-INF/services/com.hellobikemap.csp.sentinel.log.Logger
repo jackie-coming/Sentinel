@@ -1,0 +1,2 @@
+com.hellobikemap.csp.sentinel.logging.slf4j.RecordLogLogger
+com.hellobikemap.csp.sentinel.logging.slf4j.CommandCenterLogLogger

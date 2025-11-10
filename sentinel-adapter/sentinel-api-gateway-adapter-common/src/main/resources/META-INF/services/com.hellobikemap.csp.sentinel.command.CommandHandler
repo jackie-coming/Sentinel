@@ -1,0 +1,4 @@
+com.hellobikemap.csp.sentinel.adapter.gateway.common.command.UpdateGatewayApiDefinitionGroupCommandHandler
+com.hellobikemap.csp.sentinel.adapter.gateway.common.command.UpdateGatewayRuleCommandHandler
+com.hellobikemap.csp.sentinel.adapter.gateway.common.command.GetGatewayApiDefinitionGroupCommandHandler
+com.hellobikemap.csp.sentinel.adapter.gateway.common.command.GetGatewayRuleCommandHandler

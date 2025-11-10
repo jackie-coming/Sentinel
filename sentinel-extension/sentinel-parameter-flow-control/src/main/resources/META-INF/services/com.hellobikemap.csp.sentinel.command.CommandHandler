@@ -1,0 +1,2 @@
+com.hellobikemap.csp.sentinel.command.handler.GetParamFlowRulesCommandHandler
+com.hellobikemap.csp.sentinel.command.handler.ModifyParamFlowRulesCommandHandler

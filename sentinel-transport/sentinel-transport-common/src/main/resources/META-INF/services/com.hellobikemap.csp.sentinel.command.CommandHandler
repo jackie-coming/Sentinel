@@ -1,0 +1,17 @@
+com.hellobikemap.csp.sentinel.command.handler.BasicInfoCommandHandler
+com.hellobikemap.csp.sentinel.command.handler.FetchActiveRuleCommandHandler
+com.hellobikemap.csp.sentinel.command.handler.FetchClusterNodeByIdCommandHandler
+com.hellobikemap.csp.sentinel.command.handler.FetchClusterNodeHumanCommandHandler
+com.hellobikemap.csp.sentinel.command.handler.FetchJsonTreeCommandHandler
+com.hellobikemap.csp.sentinel.command.handler.FetchOriginCommandHandler
+com.hellobikemap.csp.sentinel.command.handler.FetchSimpleClusterNodeCommandHandler
+com.hellobikemap.csp.sentinel.command.handler.FetchSystemStatusCommandHandler
+com.hellobikemap.csp.sentinel.command.handler.FetchTreeCommandHandler
+com.hellobikemap.csp.sentinel.command.handler.ModifyRulesCommandHandler
+com.hellobikemap.csp.sentinel.command.handler.OnOffGetCommandHandler
+com.hellobikemap.csp.sentinel.command.handler.OnOffSetCommandHandler
+com.hellobikemap.csp.sentinel.command.handler.SendMetricCommandHandler
+com.hellobikemap.csp.sentinel.command.handler.VersionCommandHandler
+com.hellobikemap.csp.sentinel.command.handler.cluster.FetchClusterModeCommandHandler
+com.hellobikemap.csp.sentinel.command.handler.cluster.ModifyClusterModeCommandHandler
+com.hellobikemap.csp.sentinel.command.handler.ApiCommandHandler

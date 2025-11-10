@@ -1,0 +1,10 @@
+com.hellobikemap.csp.sentinel.cluster.server.command.handler.ModifyClusterServerFlowConfigHandler
+com.hellobikemap.csp.sentinel.cluster.server.command.handler.FetchClusterFlowRulesCommandHandler
+com.hellobikemap.csp.sentinel.cluster.server.command.handler.FetchClusterParamFlowRulesCommandHandler
+com.hellobikemap.csp.sentinel.cluster.server.command.handler.FetchClusterServerConfigHandler
+com.hellobikemap.csp.sentinel.cluster.server.command.handler.ModifyClusterServerTransportConfigHandler
+com.hellobikemap.csp.sentinel.cluster.server.command.handler.ModifyServerNamespaceSetHandler
+com.hellobikemap.csp.sentinel.cluster.server.command.handler.ModifyClusterFlowRulesCommandHandler
+com.hellobikemap.csp.sentinel.cluster.server.command.handler.ModifyClusterParamFlowRulesCommandHandler
+com.hellobikemap.csp.sentinel.cluster.server.command.handler.FetchClusterServerInfoCommandHandler
+com.hellobikemap.csp.sentinel.cluster.server.command.handler.FetchClusterMetricCommandHandler
