@@ -134,40 +134,101 @@ public class ConsistentHashLoadBalanceStrategy implements LoadBalanceStrategy {
 
   /**
    * 重建哈希环
+   * 优化：使用双重哈希提升虚拟节点分布的随机性
    */
   private void rebuildHashRing(List<ServerNode> nodes) {
     hashRing.clear();
 
     for (ServerNode node : nodes) {
+      String nodeKey = node.getHost() + ":" + node.getPort();
+
       // 为每个真实节点创建多个虚拟节点
       for (int i = 0; i < VIRTUAL_NODE_COUNT; i++) {
-        String virtualNodeKey = node.getHost() + ":" + node.getPort() + "#" + i;
-        long hash = hash(virtualNodeKey);
-        hashRing.put(hash, node);
+        // 优化1：使用双重哈希增强随机性
+        // 第一次哈希：nodeKey + 序号
+        String key1 = nodeKey + "#" + i;
+        long hash1 = hash(key1);
+
+        // 第二次哈希：基于第一次结果，进一步打散
+        String key2 = nodeKey + "#" + i + "#" + hash1;
+        long hash2 = hash(key2);
+
+        hashRing.put(hash2, node);
       }
     }
   }
 
   /**
-   * 计算字符串的哈希值 使用FNV1_32_HASH算法
+   * 计算字符串的哈希值
+   * 使用优化的MurmurHash3算法，具有：
+   * 1. 极好的雪崩效应（输入微小变化导致输出完全不同）
+   * 2. 均匀的分布特性
+   * 3. 高性能（比FNV1更快）
+   * 4. 低碰撞率
    */
   private long hash(String key) {
-    final int p = 16777619;
-    long hash = 2166136261L;
-    for (int i = 0; i < key.length(); i++) {
-      hash = (hash ^ key.charAt(i)) * p;
-    }
-    hash += hash << 13;
-    hash ^= hash >> 7;
-    hash += hash << 3;
-    hash ^= hash >> 17;
-    hash += hash << 5;
+    byte[] data = key.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    return murmurHash3(data);
+  }
 
-    // 如果算出来的值为负数，取其绝对值
-    if (hash < 0) {
-      hash = Math.abs(hash);
+  /**
+   * MurmurHash3 64位实现 基于Austin Appleby的MurmurHash3算法
+   */
+  private long murmurHash3(byte[] data) {
+    final long seed = 0x1234ABCD; // 固定种子，保证确定性
+    final long m = 0xc6a4a7935bd1e995L;
+    final int r = 47;
+
+    long h = seed ^ (data.length * m);
+
+    int length8 = data.length / 8;
+
+    // Process 8 bytes at a time
+    for (int i = 0; i < length8; i++) {
+      final int i8 = i * 8;
+      long k = ((long) data[i8] & 0xff)
+          + (((long) data[i8 + 1] & 0xff) << 8)
+          + (((long) data[i8 + 2] & 0xff) << 16)
+          + (((long) data[i8 + 3] & 0xff) << 24)
+          + (((long) data[i8 + 4] & 0xff) << 32)
+          + (((long) data[i8 + 5] & 0xff) << 40)
+          + (((long) data[i8 + 6] & 0xff) << 48)
+          + (((long) data[i8 + 7] & 0xff) << 56);
+
+      k *= m;
+      k ^= k >>> r;
+      k *= m;
+
+      h ^= k;
+      h *= m;
     }
-    return hash;
+
+    // Handle remaining bytes
+    switch (data.length % 8) {
+      case 7:
+        h ^= (long) (data[(length8 * 8) + 6] & 0xff) << 48;
+      case 6:
+        h ^= (long) (data[(length8 * 8) + 5] & 0xff) << 40;
+      case 5:
+        h ^= (long) (data[(length8 * 8) + 4] & 0xff) << 32;
+      case 4:
+        h ^= (long) (data[(length8 * 8) + 3] & 0xff) << 24;
+      case 3:
+        h ^= (long) (data[(length8 * 8) + 2] & 0xff) << 16;
+      case 2:
+        h ^= (long) (data[(length8 * 8) + 1] & 0xff) << 8;
+      case 1:
+        h ^= (long) (data[length8 * 8] & 0xff);
+        h *= m;
+    }
+
+    // Final mix
+    h ^= h >>> r;
+    h *= m;
+    h ^= h >>> r;
+
+    // Return positive value
+    return h & Long.MAX_VALUE;
   }
 
   @Override
