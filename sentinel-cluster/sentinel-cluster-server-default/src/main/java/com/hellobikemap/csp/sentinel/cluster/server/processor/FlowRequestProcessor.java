@@ -53,7 +53,7 @@ public class FlowRequestProcessor implements RequestProcessor<FlowRequestData, F
             new FlowTokenResponseData()
                 .setRemainingCount(result.getRemaining())
                 .setWaitInMs(result.getWaitInMs())
-                .setServerCostTime((int) serverCostTime)
+                .setServerCostTime(serverCostTime)
         );
     }
 }

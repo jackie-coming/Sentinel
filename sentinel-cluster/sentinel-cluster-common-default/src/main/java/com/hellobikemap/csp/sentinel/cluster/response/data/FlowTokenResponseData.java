@@ -30,7 +30,7 @@ public class FlowTokenResponseData {
         return serverCostTime;
     }
 
-    public FlowTokenResponseData setServerCostTime(int serverCostTime) {
+    public FlowTokenResponseData setServerCostTime(long serverCostTime) {
         this.serverCostTime = serverCostTime;
         return this;
     }
