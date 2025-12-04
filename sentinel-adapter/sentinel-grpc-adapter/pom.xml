@@ -5,7 +5,7 @@
     <parent>
         <artifactId>sentinel-adapter</artifactId>
         <groupId>com.hellobikemap.csp</groupId>
-        <version>1.8.6.map.4.SNAPSHOT</version>
+        <version>1.8.6.map.5.SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>sentinel-grpc-adapter</artifactId>

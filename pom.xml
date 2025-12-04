@@ -10,7 +10,7 @@
     </parent>
   <groupId>com.hellobikemap.csp</groupId>
     <artifactId>sentinel-parent</artifactId>
-  <version>1.8.6.map.4.SNAPSHOT</version>
+  <version>1.8.6.map.5.SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.artifactId}</name>

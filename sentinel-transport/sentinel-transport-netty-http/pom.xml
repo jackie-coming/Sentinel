@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.hellobikemap.csp</groupId>
         <artifactId>sentinel-transport</artifactId>
-        <version>1.8.6.map.4.SNAPSHOT</version>
+        <version>1.8.6.map.5.SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>sentinel-transport-netty-http</artifactId>
