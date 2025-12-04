@@ -24,6 +24,17 @@ public class FlowTokenResponseData {
     private int remainingCount;
     private int waitInMs;
 
+    private long serverCostTime;
+
+    public long getServerCostTime() {
+        return serverCostTime;
+    }
+
+    public FlowTokenResponseData setServerCostTime(int serverCostTime) {
+        this.serverCostTime = serverCostTime;
+        return this;
+    }
+
     public int getRemainingCount() {
         return remainingCount;
     }

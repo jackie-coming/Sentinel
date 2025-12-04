@@ -36,19 +36,24 @@ public class FlowRequestProcessor implements RequestProcessor<FlowRequestData, F
     public ClusterResponse<FlowTokenResponseData> processRequest(ClusterRequest<FlowRequestData> request) {
         TokenService tokenService = TokenServiceProvider.getService();
 
+        long requestStartTime = System.currentTimeMillis();
         long flowId = request.getData().getFlowId();
         int count = request.getData().getCount();
         boolean prioritized = request.getData().isPriority();
 
         TokenResult result = tokenService.requestToken(flowId, count, prioritized);
-        return toResponse(result, request);
+        // 计算请求耗时
+        long costTime = System.currentTimeMillis() - requestStartTime;
+        return toResponse(result, request, costTime);
     }
 
-    private ClusterResponse<FlowTokenResponseData> toResponse(TokenResult result, ClusterRequest request) {
+    private ClusterResponse<FlowTokenResponseData> toResponse(TokenResult result,
+        ClusterRequest request, long serverCostTime) {
         return new ClusterResponse<>(request.getId(), request.getType(), result.getStatus(),
             new FlowTokenResponseData()
                 .setRemainingCount(result.getRemaining())
                 .setWaitInMs(result.getWaitInMs())
+                .setServerCostTime((int) serverCostTime)
         );
     }
 }
