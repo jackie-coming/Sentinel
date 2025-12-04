@@ -117,6 +117,17 @@ public final class ClusterMetadataHelper {
     }
 
     /**
+     * Get the serverCostTime.
+     *
+     * @param entry the entry
+     * @return serverCostTime, or null if not available
+     */
+    public static Long getServerCostTime(Entry entry) {
+        String serverCostTime = getMetadata(entry).get(ClusterMetadataKeys.SERVER_COST_TIME);
+        return StringUtil.isNotBlank(serverCostTime) ? Long.parseLong(serverCostTime) : null;
+    }
+
+    /**
      * Get the rule name.
      *
      * @param entry the entry

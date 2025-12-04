@@ -62,6 +62,11 @@ public final class ClusterMetadataKeys {
     public static final String KEY_REQUEST_TIMESTAMP = "request_timestamp";
 
     /**
+     * Key for the server cost time
+     */
+    public static final String SERVER_COST_TIME = "server_cost_time";
+
+    /**
      * Key for the request status ("success" or "failure")
      */
     public static final String KEY_REQUEST_STATUS = "request_status";

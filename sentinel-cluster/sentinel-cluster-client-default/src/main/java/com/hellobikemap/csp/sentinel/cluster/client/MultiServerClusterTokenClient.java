@@ -602,11 +602,14 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
 
         ClusterResponse response = client.sendRequest(request);
         TokenResult result = new TokenResult(response.getStatus());
+        long serverCostTime = -1;
+
 
         if (response.getData() != null) {
           FlowTokenResponseData responseData = (FlowTokenResponseData) response.getData();
           result.setRemaining(responseData.getRemainingCount())
               .setWaitInMs(responseData.getWaitInMs());
+          serverCostTime = responseData.getServerCostTime();
         }
 
         // 计算请求耗时
@@ -628,6 +631,7 @@ public class MultiServerClusterTokenClient implements ClusterTokenClient {
         attachments.put(ClusterMetadataKeys.KEY_RETRY_COUNT, String.valueOf(actualRetryCount));
         attachments.put(ClusterMetadataKeys.KEY_REQUEST_TIMESTAMP,
             String.valueOf(requestStartTime));
+        attachments.put(ClusterMetadataKeys.SERVER_COST_TIME, String.valueOf(serverCostTime));
         // 状态信息
         attachments.put(ClusterMetadataKeys.KEY_REQUEST_STATUS, "success");
         result.setAttachments(attachments);
